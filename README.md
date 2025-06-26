@@ -5,10 +5,14 @@
 *	Specify “Output CSV file”
   
     - remember to include “.csv” at the end
-    -  Name file as “deployment ID” + “-all_LFDCS_Mah3”
-    -	Example: CCB01_01-all_LFDCS_Mah3.csv 
--	Specify “Maximum Mahalanobis distance filter” as 3
-- OK
+    - Name file as “deployment ID” + “-all_LFDCS_Mah3”
+    -	Example: CCB01_01-all_LFDCS_Mah3.csv
+* For the clnb_gom9
+    - Narrowband only = True
+    - Broadband only = False 
+
+*	Specify “Maximum Mahalanobis distance filter” as 3
+* OK
   
 2. Run “LFDCS_to_Raven.R”
 -	Creates selection table of LFDCS detections for Raven
