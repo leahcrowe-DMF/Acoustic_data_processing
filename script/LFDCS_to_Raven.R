@@ -8,7 +8,7 @@ detector = "clnb_gom9"
 start_deploy = ymd_hms("2009-03-29 00:00:00")
 
 # LFDCS output as csv ----
-filename = "20090329_all"
+filename = "20090329-all_LFDCS_Mah3"
 all_lines<-read.delim(paste0("./data/",filename,".csv"), skip = 14, header = T, sep = ",")
 head(all_lines)
 nrow(all_lines)
@@ -57,5 +57,5 @@ all_lines_Raven
 
 # write file ----
 
-write.table(all_lines_Raven, paste0('./data/',filename,"_RavenST.txt"), sep = "\t",
-            row.names = F, col.names = TRUE)
+write.table(all_lines_Raven, paste0('./data/',filename,"-RavenST.txt"), sep = "\t",
+            row.names = F, col.names = T, quote = F)
