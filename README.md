@@ -12,6 +12,7 @@
     - Broadband only = False 
 
 *	Specify “Maximum Mahalanobis distance filter” as 3
+*	Export date/time in text format with fractional seconds = False?
 * OK
   
 2. Run “LFDCS_to_Raven.R”
