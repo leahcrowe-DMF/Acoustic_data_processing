@@ -3,7 +3,7 @@
 1. EXPORT: Autodetections
 *	Select index
 *	Specify “Output CSV file”
-  
+    - save inside "lfdsc_processed" folder
     - remember to include “.csv” at the end
     - Name file as “deployment ID” + “-all_LFDCS_Mah3”
     -	Example: CCB01_01-all_LFDCS_Mah3.csv
@@ -12,7 +12,7 @@
     - Broadband only = False 
 
 *	Specify “Maximum Mahalanobis distance filter” as 3
-*	Export date/time in text format with fractional seconds = False?
+*	Export date/time in text format with fractional seconds = True
 * OK
   
 2. Run “LFDCS_to_Raven.R”
