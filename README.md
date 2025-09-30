@@ -40,5 +40,6 @@
           w = whistles
           e = echolocation
    - comments: any helpful text to understanding why we would want to revisit this plcae in the recording in the future.
+   - Save selection table periodically to protect against data loss from Raven crashes
      
       
