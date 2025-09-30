@@ -1,21 +1,31 @@
-library(dplyr);library(lubridate)
+library(dplyr);library(lubridate);library(suntools)
  
 # manual params ----
- 
+drivepath = "E:/" 
+site = "EOS08"
+deployment_number = "01"
+#ST_ID = "8854"
+
 ## detector choice ----
 detector = "clnb_gom9"
 #detector = "clnb_gomlf_blue"
  
 ## deployment start ----
-start_deploy = ymd_hms("2025-03-24 16:34:36")
+start_deploy = ymd_hms("2025-03-27 12:26:26")
  
 ## LFDCS output as csv ----
-filename = "GSC11_01-all_LFDCS_Mah3"
+filename = paste0(site,"_",deployment_number,"-all_LFDCS_Mah3")
+
+## position of deployment ---- 
+lat = 42.057981
+lon = -69.989925
  
 # read in LFDCS detections ----
-all_lines<-read.delim(paste0("D:/DMF_PAM/GSC11/GSC11_01/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")
+all_lines<-read.delim(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")
 head(all_lines)
 nrow(all_lines)
+unique(all_lines$Call.type)
+all_lines%>%filter(Call.type == -1)
  
 # wrangle into a selection table for Raven ----
  
@@ -55,8 +65,23 @@ if(detector == "clnb_gom9"){
 }
  
 all_lines_Raven
- 
+nrow(all_lines_Raven)
+unique(all_lines_Raven$Call.type.translation)
+
+all_whales_Raven<-all_lines_Raven%>%
+  filter(grepl("whale", tolower(Call.type.translation)))%>%
+  mutate(validation = "",
+         dolphins = "",
+         comments = "")
+nrow(all_whales_Raven)
+
+nrow(all_whales_Raven)/nrow(all_lines_Raven) 
+
+head(all_whales_Raven)
+
+sunriset(crds = c(lon, lat), dateTime = date_time, direction = "sunrise")
+
 # write file ----
  
-write.table(all_lines_Raven, paste0("D:/DMF_PAM/GSC11/GSC11_01/lfdcs_processed/",filename,"-RavenST.txt"), sep = '\t',
+write.table(all_lines_Raven, paste0("E:/EOS08/EOS08_01/lfdcs_processed/",filename,"-RavenST.txt"), sep = '\t',
             row.names = F, col.names = T, quote = F)
