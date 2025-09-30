@@ -35,7 +35,7 @@
           r = right whale
           s = sei whale
           ? = unsure what it is, but seems biotic
-   - dolphins: opportunistic if you happen to notice them while validating a call. Leave blank otherwise.
+   - dolphins: opportunistic if you happen to notice them while validating a call. Leave blank otherwise. Can put both (i.e. "we")
      
           w = whistles
           e = echolocation
