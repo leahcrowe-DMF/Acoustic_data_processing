@@ -22,3 +22,20 @@
 3. Load the audio and selection table in Raven
 
 4. Validate detections
+    - validation:
+      
+          b = blue whale
+          h = humpback whale
+          f = fin whale
+          m = minke whale
+          n = not a whale or biotic detection
+          r = right whale
+          s = sei whale
+          ? = unsure what it is, but seems biotic
+   - dolphins: opportunistic if you happen to notice them while validating a call. Leave blank otherwise.
+     
+          w = whistles
+          e = echolocation
+   - comments: any helpful text to understanding why we would want to revisit this plcae in the recording in the future.
+     
+      
