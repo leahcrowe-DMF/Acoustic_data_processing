@@ -1,4 +1,4 @@
-library(dplyr);library(lubridate);library(suntools)
+library(dplyr);library(lubridate);library(suncalc)
  
 # manual params ----
 drivepath = "E:/" 
@@ -72,16 +72,46 @@ all_whales_Raven<-all_lines_Raven%>%
   filter(grepl("whale", tolower(Call.type.translation)))%>%
   mutate(validation = "",
          dolphins = "",
-         comments = "")
+         comments = "",
+         date = as.Date(start.time))
 nrow(all_whales_Raven)
 
 nrow(all_whales_Raven)/nrow(all_lines_Raven) 
 
 head(all_whales_Raven)
 
-sunriset(crds = c(lon, lat), dateTime = date_time, direction = "sunrise")
+dates<-data.frame(date = seq(from = as.Date(start_deploy), to = as.Date(max(all_whales_Raven$start.time)), by = "day"))
+
+Sys.timezone()
+
+# "sunrise" : sunrise (top edge of the sun appears on the horizon) 
+# "sunset" : sunset (sun disappears below the horizon, evening civil twilight starts)
+
+# dawn to dusk is essentially civil twilight
+# "dawn" : dawn (morning nautical twilight ends, morning civil twilight starts)
+# "dusk" : dusk (evening nautical twilight starts)
+
+dawndusk<-dates%>%
+  mutate(sunrise = getSunlightTimes(date = date, lat = lat, lon = lon, keep = c("dawn","dusk"), tz = "America/New_York"))
+
+join_sun<-all_whales_Raven%>%
+  left_join(dawndusk, by = "date")
+
+# tod = time of day
+all_whales_Raven_sun<-join_sun%>%
+  mutate(tod_bin = case_when(
+    ymd_hms(start.time) <= ymd_hms(sunrise$dawn) ~ "morning",
+    ymd_hms(start.time) >= ymd_hms(sunrise$dusk) ~ "night",
+    ymd_hms(start.time) > ymd_hms(sunrise$dawn) & ymd_hms(start.time) > ymd_hms(sunrise$dawn) ~ "day"
+  ))%>%
+  dplyr::select(-date, -sunrise)
+
+head(all_whales_Raven_sun)
 
 # write file ----
- 
-write.table(all_lines_Raven, paste0("E:/EOS08/EOS08_01/lfdcs_processed/",filename,"-RavenST.txt"), sep = '\t',
+# dawndusk for reference
+write.table(dawndusk, paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,"-dawndusk.txt"), sep = '\t',
+            row.names = F, col.names = T, quote = F)
+# selection table for Raven 
+write.table(all_whales_Raven_sun, paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,"-RavenST.txt"), sep = '\t',
             row.names = F, col.names = T, quote = F)
