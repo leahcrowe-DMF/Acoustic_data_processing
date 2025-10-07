@@ -1,5 +1,8 @@
 # Acoustic_data_processing
 
+* create param file and store it within the deployment folder
+* Run LFDCS
+
 1. EXPORT: Autodetections
 *	Select index
 *	Specify “Output CSV file”
