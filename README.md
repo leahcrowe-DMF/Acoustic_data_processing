@@ -19,8 +19,9 @@
 * OK
   
 2. Run “LFDCS_to_Raven.R”
--	Creates selection table of LFDCS detections for Raven
--	Named as “deployment ID” + “-all_LFDCS_Mah3” + “-RavenST.txt”
+   * change manual parameters including the position of deployment
+   * This code creates selection table of LFDCS detections for Raven and bins into day or night based on time of day and sunste/sunrise time
+   * Names output as “deployment ID” + “-all_LFDCS_Mah3” + “-RavenST.txt”
 
 3. Load the audio and selection table in Raven
 
