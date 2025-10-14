@@ -22,7 +22,7 @@ path<-paste0(drive,'/',site,'/',site,'_',deployment_number,'/',ST_ID)
 all_wav<-as.data.frame(list.files(path))%>%
   dplyr::rename(filename = `list.files(path)`)%>%
   filter(grepl('.wav', filename))%>%mutate(basefilename = substr(filename, 6, nchar(filename) - 4))%>%
-  mutate(date = ymd_hms(basefilename, tz = "America/New_York"),
+  mutate(date = ymd_hms(basefilename),
          STID = substr(filename, 1, nchar(filename) - 17))
 
 start_deploy = min(all_wav$date)
