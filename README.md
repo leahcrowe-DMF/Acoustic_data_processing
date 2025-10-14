@@ -26,7 +26,7 @@
 3. Load the audio and selection table in Raven
 
 4. Validate detections in Raven
-    - load all sound files
+    - load all sound files, Page sound with page size 15 minutes, 90% page increment, and 10% step increment
     - File/Open Selection Table... navigate to the 'lfdcs_processed' folder to find the “deployment ID” + “-all_LFDCS_Mah3” + “-RavenST.txt”
     - Right click on the "Table 1" tab of the selection table to Save As... “deployment ID” + “-all_LFDCS_Mah3” + “-RavenST_[your initials].txt”
     - validation:
