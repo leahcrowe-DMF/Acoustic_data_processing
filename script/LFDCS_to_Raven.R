@@ -1,16 +1,19 @@
 library(dplyr);library(lubridate);library(suncalc)
  
 # manual params ----
-drivepath = "E:/" 
+drivepath = "P:/" 
 site = "EOS08"
 deployment_number = "01"
-#ST_ID = "8854"
+ST_ID = "8848"
 
 ## detector choice ----
 detector = "clnb_gom9"
 #detector = "clnb_gomlf_blue"
  
 ## deployment start ----
+
+#dir(paste0(drivepath,site,"/",site,"_",deployment_number,'/',ST_ID))[1]
+
 start_deploy = ymd_hms("2025-03-27 12:26:26")
  
 ## LFDCS output as csv ----
@@ -22,6 +25,10 @@ lon = -69.989925
  
 # read in LFDCS detections ----
 all_lines<-read.delim(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")
+
+#filter out anything before data recording start
+all_lines<-all_lines%>%filter(mdy_hms(start.time) > start_deploy)
+
 head(all_lines)
 nrow(all_lines)
 unique(all_lines$Call.type)
