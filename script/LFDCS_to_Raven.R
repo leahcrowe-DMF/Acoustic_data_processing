@@ -1,21 +1,15 @@
 library(dplyr);library(lubridate);library(suncalc)
  
 # manual params ----
-<<<<<<< HEAD
+
 drivepath = "P:/" 
 site = "EOS08"
 deployment_number = "01"
 ST_ID = "8848"
-=======
-drive = "P:/" 
-site = "CCB07"
-deployment_number = "01"
-ST_ID = "8859"
 
 ## position of deployment ---- 
 lat = 42.052876
 lon = -70.313681
->>>>>>> 42947092e3784ce287a21a97c25123eb921fd8cb
 
 ## detector choice ----
 detector = "clnb_gom9"
