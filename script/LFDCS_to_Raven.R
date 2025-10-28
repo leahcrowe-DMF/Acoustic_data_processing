@@ -1,10 +1,21 @@
 library(dplyr);library(lubridate);library(suncalc)
  
 # manual params ----
+<<<<<<< HEAD
 drivepath = "P:/" 
 site = "EOS08"
 deployment_number = "01"
 ST_ID = "8848"
+=======
+drive = "P:/" 
+site = "CCB07"
+deployment_number = "01"
+ST_ID = "8859"
+
+## position of deployment ---- 
+lat = 42.052876
+lon = -70.313681
+>>>>>>> 42947092e3784ce287a21a97c25123eb921fd8cb
 
 ## detector choice ----
 detector = "clnb_gom9"
@@ -12,16 +23,21 @@ detector = "clnb_gom9"
  
 ## deployment start ----
 
-#dir(paste0(drivepath,site,"/",site,"_",deployment_number,'/',ST_ID))[1]
+path<-paste0(drive,'/',site,'/',site,'_',deployment_number,'/',ST_ID)
 
-start_deploy = ymd_hms("2025-03-27 12:26:26")
- 
+all_wav<-as.data.frame(list.files(path))%>%
+  dplyr::rename(filename = `list.files(path)`)%>%
+  filter(grepl('.wav', filename))%>%mutate(basefilename = substr(filename, 6, nchar(filename) - 4))%>%
+  mutate(date = ymd_hms(basefilename),
+         STID = substr(filename, 1, nchar(filename) - 17))
+
+start_deploy = min(all_wav$date)
+
+#check if folder matches the ST ID in the file string
+identical(unique(all_wav$STID), ST_ID)
+
 ## LFDCS output as csv ----
 filename = paste0(site,"_",deployment_number,"-all_LFDCS_Mah3")
-
-## position of deployment ---- 
-lat = 42.057981
-lon = -69.989925
  
 # read in LFDCS detections ----
 all_lines<-read.delim(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")
