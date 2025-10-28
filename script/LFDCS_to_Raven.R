@@ -17,7 +17,7 @@ detector = "clnb_gom9"
  
 ## deployment start ----
 
-path<-paste0(drive,'/',site,'/',site,'_',deployment_number,'/',ST_ID)
+path<-paste0(drivepath,'/',site,'/',site,'_',deployment_number,'/',ST_ID)
 
 all_wav<-as.data.frame(list.files(path))%>%
   dplyr::rename(filename = `list.files(path)`)%>%
