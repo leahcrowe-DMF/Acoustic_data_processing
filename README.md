@@ -38,7 +38,7 @@
           n = not a whale or biotic detection
           r = right whale
           s = sei whale
-          ? = unsure what it is, but seems biotic
+          ? = unsure what it is, but seems biotic (allowable value on its own or can be paired with any character code, e.g. 'r?' would indicate not sure, but leaning more toward this being from a right whale than anything else)
    - dolphins: opportunistic if you happen to notice them while validating a call. Leave blank otherwise. Can put both (i.e. "we")
      
           w = whistles
