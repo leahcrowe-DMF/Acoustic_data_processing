@@ -3,13 +3,13 @@ library(dplyr);library(lubridate);library(suncalc)
 # manual params ----
 
 drivepath = "P:/" 
-site = "EOS08"
+site = "MBW05"
 deployment_number = "01"
-ST_ID = "8848"
+ST_ID = "8847"
 
 ## position of deployment ---- 
-lat = 42.052876
-lon = -70.313681
+lat = 42.280428
+lon = -70.586775
 
 ## detector choice ----
 detector = "clnb_gom9"
@@ -18,6 +18,7 @@ detector = "clnb_gom9"
 ## deployment start ----
 
 path<-paste0(drivepath,'/',site,'/',site,'_',deployment_number,'/',ST_ID)
+path
 
 all_wav<-as.data.frame(list.files(path))%>%
   dplyr::rename(filename = `list.files(path)`)%>%
@@ -26,6 +27,7 @@ all_wav<-as.data.frame(list.files(path))%>%
          STID = substr(filename, 1, nchar(filename) - 17))
 
 start_deploy = min(all_wav$date)
+start_deploy
 
 #check if folder matches the ST ID in the file string
 identical(unique(all_wav$STID), ST_ID)
@@ -132,3 +134,7 @@ write.table(dawndusk, paste0(drivepath,site,"/",site,"_",deployment_number,"/lfd
 # selection table for Raven 
 write.table(all_whales_Raven_sun, paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,"-RavenST.txt"), sep = '\t',
             row.names = F, col.names = T, quote = F)
+
+# write.csv(all_whales_Raven_sun, paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,"-RavenST.csv"), 
+#             row.names = F)
+
