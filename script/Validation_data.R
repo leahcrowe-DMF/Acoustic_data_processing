@@ -24,6 +24,7 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>%
     TRUE ~ ""
   ))%>%
   mutate(validated_sp = case_when(
+    validation == "n" ~ "False detection",
     grepl("r",validation) ~ "Right whale",
     grepl("h",validation) ~ "Humpback whale",
     grepl("s",validation) ~ "Sei whale",
@@ -78,7 +79,23 @@ ggplot(right_whale_false_sp%>%filter(confidence != "Possible"))+
 
 library(ggplot2)
 
-ggplot(analysis_data_df%>%filter(validated_sp == "Right whale" & confidence == "Definite"))+
-  geom_point(aes(x = date, y = factor(tod_bin, levels = c("morning","day","night"))))+
+detection_bin<-analysis_data_df%>%
+  filter(validated_sp == "Right whale")%>%
+  group_by(Deployment, date,confidence)%>%
+  mutate(n = n())%>%
+  mutate(confidence2 = case_when(
+    confidence == "Definite" & n >= 3 ~ "Definite",
+    TRUE ~ "Possible"
+  ))%>%
+  distinct(Deployment, date, tod_bin, confidence)%>%
+  arrange(Deployment, date, tod_bin, confidence)%>%
+  group_by(Deployment, date, tod_bin)%>%
+  mutate(con_count = 1:n())%>%
+  filter(con_count == 1)
+  
+detection_bin%>%filter(con_count == 1 & confidence == "Possible")
+
+ggplot(detection_bin)+
+  geom_point(aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence))+
   facet_wrap(~Deployment, ncol = 1)
 
