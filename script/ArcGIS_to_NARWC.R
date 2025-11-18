@@ -1,6 +1,6 @@
 library(arcgis);library(arcgisbinding);
 library(arcgisutils);library(dplyr);library(lubridate);
-library(stringr);library(geosphere);library(sf)
+library(stringr);library(geosphere);library(sf);library(tidyr)
 
 arc.check_product()
 
