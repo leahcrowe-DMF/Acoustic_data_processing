@@ -63,6 +63,8 @@ events<-conditions%>%
   mutate(SIGHTNO = 1:n())%>%
   filter(CaptureDate >= date_start & CaptureDate < date_end)
 
+CCBMB<-events%>%filter(DATE == "2025-09-13")
+
 ## bind all three data sources ----
 survey<-trackline%>%
   bind_rows(events)%>%
@@ -75,6 +77,12 @@ survey<-trackline%>%
   group_by(DATE)%>% # group also by Vessel in the future
   tidyr::fill(VESSEL, SURVEYTYPE, VISIBLTY, BEAUFORT, CLOUD, WX, GLARE, SWELL, QUALITY, 
               .direction = "down")%>% # last occasion carried forward (locf)
+  mutate(lag_survey = lag(SURVEYTYPE))%>%
+  mutate(SIGHTNO = case_when(
+    is.na(lag_survey) & is.na(SIGHTNO) ~ lag(SIGHTNO), #move details from first row (which is the metadata collected before the survey starts) to the next line when the survey officially starts
+    TRUE ~ SIGHTNO
+  ))%>%
+  filter(!is.na(SURVEYTYPE))%>%
   ungroup()%>%
   filter(!is.na(VISIBLTY)) # remove rows without any data that occur before surveys starts (note that locf already occurred)
 
@@ -101,14 +109,6 @@ for(i in 1:(nrow(survey)-1)){
 ### final vessel heading is same as point before ----
 HEADING_grab[nrow(survey)]<-HEADING_grab[nrow(survey)-1]
 
-### move details from first row (which is the metadata collected before the survey starts) to the next line when the survey officially starts ----
-for(i in 1:(nrow(survey)-1)){
-  if(is.na(survey$SIGHTNO[i+1]) & is.na(survey$SURVEYTYPE[i])){
-    survey$SIGHTNO[i+1]<-survey$SIGHTNO[i]
-    survey$NOTES[i+1]<-survey$NOTES[i]
-  }
-}
-
 tail(HEADING_grab)
 
 # tidy for NARWC submission
@@ -122,10 +122,9 @@ survey2<-survey%>%
   ))%>%
   group_by(DATE, VESSEL)%>%
   mutate(EVENTNO = 1:n())%>% # continuous event number per date/vessel
-  filter(!is.na(SURVEYTYPE))%>%
   mutate(LEGSTAGE = case_when( # legstage starts and ends per date/vessel
      SIGHTNO == 1 & SURVEYTYPE == "Regular survey (looking)" ~ 1,
-     SIGHTNO == max(SIGHTNO) & SURVEYTYPE == "Regular survey (looking)" ~ 5,
+     EVENTNO == max(EVENTNO) ~ 5, #& SURVEYTYPE == "Regular survey (looking)"
      TRUE ~ 2
    ))%>%
   as.data.frame()%>%
@@ -135,40 +134,65 @@ survey2<-survey%>%
                 IDREL, CONFIDNC, ANHEAD, BEHAV1, NOTES, SURVEYTYPE
                 )
 
-write.csv(survey2, paste0("./data/MADMF-NARWC_", as.Date(date_start), "-", as.Date(date_end),".csv"), row.names = F)
+write.csv(survey2, paste0("./data/MADMF-NARWC_", as.Date(date_start), "-", as.Date(date_end),"_wAcoustic.csv"), row.names = F)
 
-## below is working to remove acoustic station prep time
+# cut out survey when focused on Acoustic monitoring ----
 
-sigs1<-survey%>%
-  filter(is.na(SURVEYTYPE) & !is.na(SPECCODE))%>%
-  as.data.frame()
+## how many times a survey note occurs consecutively ----
+survey2%>%
+  filter(SURVEYTYPE == "Survey note")%>%
+  group_by(DATE)%>%
+  mutate(event_diff_lag = lag(EVENTNO) - EVENTNO,
+         event_diff_lead = lead(EVENTNO) - EVENTNO)%>%
+  filter(event_diff_lag == -1 | event_diff_lead == 1)
 
-
-names(survey2)
-head(survey2)
-nrow(survey2)
-
+## update legstage ----
+# should EVENTNO be updated?
 
 survey3<-survey2%>%
   group_by(DATE, VESSEL)%>%
+  mutate(SURVEYTYPE = case_when( # need to do this three times because this has occurred three times in a row above. This is not eloquent.
+    SURVEYTYPE == "Survey note" ~ lead(SURVEYTYPE),
+    TRUE ~ SURVEYTYPE
+  ))%>%
+  mutate(SURVEYTYPE = case_when(
+    SURVEYTYPE == "Survey note" ~ lead(SURVEYTYPE),
+    TRUE ~ SURVEYTYPE
+  ))%>%
+  mutate(SURVEYTYPE = case_when(
+    SURVEYTYPE == "Survey note" ~ lead(SURVEYTYPE),
+    TRUE ~ SURVEYTYPE
+  ))%>%
   mutate(legstage2 = case_when(
-    SIGHTNO == 1 ~ 1
-  ))%>%ungroup()
+    SURVEYTYPE != lag(SURVEYTYPE) ~ 5, # change in survey type
+    SIGHTNO == 1 ~ 1,
+    grepl("Acoustic", SURVEYTYPE) == T ~ 99,
+    TRUE ~ LEGSTAGE
+  ))%>%ungroup()%>%
+  filter(legstage2 != 99)%>%
+  mutate(legstage2 = 
+           case_when(
+             legstage2 == 5 & lag(SURVEYTYPE) == "Acoustic station (dedicated looking is paused to focus on acoustic equiptment recovery and deployment)"
+                                  ~ 1,
+             TRUE ~ legstage2)
+           )%>%
+  mutate(LEGSTAGE = legstage2)%>%
+  dplyr::select(-SURVEYTYPE, -legstage2)
 
-for (i in 1:(nrow(survey3)-1)){
- if (survey3$SURVEYTYPE[i+1] != survey3$SURVEYTYPE[i]){
-    print(i)
-    survey3$legstage2[i+1] = 55 
-  }
-}
+write.csv(survey3, paste0("./data/MADMF-NARWC_", as.Date(date_start), "-", as.Date(date_end),".csv"), row.names = F)
+  
+nrow(survey2)
+nrow(survey3)
 
+# map of each day ----
 
 library(ggplot2)
 
 ggplot(survey3)+
-  geom_point(aes(x = LONG_DD, LAT_DD), color = "black")+
-  geom_point(survey3%>%filter(!is.na(legstage2)), mapping = aes(x = LONG_DD, LAT_DD, color = as.factor(legstage2)))+
-  theme(legend.position = "bottom")
-
-## To DO
-## legstage 1, 2, 5, remove? when on acoustic station
+  geom_point(aes(x = LONG_DD, LAT_DD, color = SURVEYTYPE))+
+  #geom_point(aes(x = LONG_DD, LAT_DD), color = "black")+
+  geom_point(survey3%>%filter(legstage2 != 2), mapping = aes(x = LONG_DD, LAT_DD, color = as.factor(legstage2)), size = 5)+
+  theme(legend.position = "bottom")+
+  facet_wrap(~DATE, scales = "free")
+  xlim(c(-70.75,-70.74))+
+  ylim(c(42.3,42.4))
