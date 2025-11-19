@@ -2,9 +2,12 @@ library(arcgis);library(arcgisbinding);
 library(arcgisutils);library(dplyr);library(lubridate);
 library(stringr);library(geosphere);library(sf);library(tidyr)
 
+# manual parameters ----
+
+## check there is ArcGIS on this machine ----
 arc.check_product()
 
-#works
+## GIS access token to grab program data ----
 my_token <- auth_user(
   username = "leah.crowe_DMF",
   password = pswd
@@ -12,17 +15,20 @@ my_token <- auth_user(
 
 set_arc_token(my_token)
 
-###
+## establish time of interest ----
 date_start<-ymd_hms("2025-01-01 00:00:01")
 date_end<-ymd_hms(Sys.time())
 
-###
+# pull data ----
+
+## trackline ----
 trackline<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/services/Acoustic_Monitor_Deployment_Survey_Track_Points_view/FeatureServer/0")%>%
   mutate(data_file = "tracks")%>%
   filter(CaptureDate >= date_start & CaptureDate < date_end)
 names(trackline)
 head(trackline)
 
+## sightings ----
 sightings<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/services/Species_Sighting/FeatureServer/4")%>%
               filter(SurveyType == "dedicated")%>%
               dplyr::rename("LAT_DD" = "S_LAT", "LONG_DD" = "S_LONG")%>%
@@ -40,11 +46,15 @@ sightings<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/s
 names(sightings)
 head(sightings)
 
+## conditions ----
 conditions<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/services/Conditions_Observation/FeatureServer/1")%>%
   mutate(data_file = "conditions")
 names(conditions)
 head(conditions)
 
+# combine data ----
+
+## bind conditions + sightings to establish sightno ----
 events<-conditions%>%
   bind_rows(sightings)%>%
   mutate(DATE = as.Date(CaptureDate))%>%
@@ -53,9 +63,9 @@ events<-conditions%>%
   mutate(SIGHTNO = 1:n())%>%
   filter(CaptureDate >= date_start & CaptureDate < date_end)
 
+## bind all three data sources ----
 survey<-trackline%>%
   bind_rows(events)%>%
-  #bind_rows(sightings)%>%
   dplyr::rename("Datetime_UTC" = "CaptureDate",
                 "NUMBER" = "NUMANIMAL")%>%
   arrange(Datetime_UTC,data_file)%>%
@@ -64,61 +74,56 @@ survey<-trackline%>%
   mutate(BEAUFORT = as.numeric(BEAUFORT))%>%
   group_by(DATE)%>% # group also by Vessel in the future
   tidyr::fill(VESSEL, SURVEYTYPE, VISIBLTY, BEAUFORT, CLOUD, WX, GLARE, SWELL, QUALITY, 
-              .direction = "down")%>%
+              .direction = "down")%>% # last occasion carried forward (locf)
   ungroup()%>%
-  filter(!is.na(VISIBLTY))
+  filter(!is.na(VISIBLTY)) # remove rows without any data that occur before surveys starts (note that locf already occurred)
 
-survey%>%group_by(Datetime_UTC)%>%mutate(n = n())%>%filter(n>1)%>%dplyr::select(OBJECTID,Datetime_UTC,n,data_file)
-survey%>%filter(is.na(SURVEYTYPE))
+# calculations ----
 
-
-#get bearing
+## vessel heading ----
 HEADING_grab = NULL
 
+### based on i and i+1 location ----
 for(i in 1:(nrow(survey))){
-  
   HEADING_grab[i] = round(bearing(c(survey$LONG_DD[i],survey$LAT_DD[i]), 
                                   c(survey$LONG_DD[i+1],survey$LAT_DD[i+1])),0)
   print(HEADING_grab[i])
-  
 }
 
-#get previous bearing when position and time are duplicated (sig or conditions at same time as survey point)
+### get previous vessel heading when position and time are duplicated (sig or conditions at same time as survey point) ----
 for(i in 1:(nrow(survey)-1)){
-  
   if (survey$LONG_DD[i] == survey$LONG_DD[i+1] & survey$LAT_DD[i] == survey$LAT_DD[i+1] & survey$Datetime_UTC[i] == survey$Datetime_UTC[i+1]){
     print(i)
     HEADING_grab[i] = HEADING_grab[i-1]
   }
-
 }
 
+### final vessel heading is same as point before ----
 HEADING_grab[nrow(survey)]<-HEADING_grab[nrow(survey)-1]
 
+### move details from first row (which is the metadata collected before the survey starts) to the next line when the survey officially starts ----
 for(i in 1:(nrow(survey)-1)){
-
   if(is.na(survey$SIGHTNO[i+1]) & is.na(survey$SURVEYTYPE[i])){
     survey$SIGHTNO[i+1]<-survey$SIGHTNO[i]
     survey$NOTES[i+1]<-survey$NOTES[i]
   }
-  
 }
-
 
 tail(HEADING_grab)
 
+# tidy for NARWC submission
 survey2<-survey%>%
   mutate(
-    LEGTYPE = 5,
+    LEGTYPE = 5, # POP survey
     HEADING = HEADING_grab)%>%
   mutate(HEADING = case_when(
-    HEADING < 0 ~ HEADING + 360,
+    HEADING < 0 ~ HEADING + 360, # make vessel heading 0–359
     TRUE ~ HEADING
   ))%>%
   group_by(DATE, VESSEL)%>%
-  mutate(EVENTNO = 1:n())%>%
+  mutate(EVENTNO = 1:n())%>% # continuous event number per date/vessel
   filter(!is.na(SURVEYTYPE))%>%
-  mutate(LEGSTAGE = case_when(
+  mutate(LEGSTAGE = case_when( # legstage starts and ends per date/vessel
      SIGHTNO == 1 & SURVEYTYPE == "Regular survey (looking)" ~ 1,
      SIGHTNO == max(SIGHTNO) & SURVEYTYPE == "Regular survey (looking)" ~ 5,
      TRUE ~ 2
