@@ -121,7 +121,8 @@ survey2<-survey%>%
     TRUE ~ HEADING
   ))%>%
   group_by(DATE, VESSEL)%>%
-  mutate(EVENTNO = 1:n())%>% # continuous event number per date/vessel
+  mutate(EVENTNO = 1:n(),
+         EDITS = "")%>% # continuous event number per date/vessel
   mutate(LEGSTAGE = case_when( # legstage starts and ends per date/vessel
      SIGHTNO == 1 & SURVEYTYPE == "Regular survey (looking)" ~ 1,
      EVENTNO == max(EVENTNO) ~ 5, #& SURVEYTYPE == "Regular survey (looking)"
@@ -131,7 +132,7 @@ survey2<-survey%>%
   dplyr::select(-GlobalID, -CreationDate, -Creator, -EditDate, -Editor, -HorizontalAccuracy, -LatestSurveyEffort, -geometry)%>%
   dplyr::select(OBJECTID, DDSOURCE, VESSEL, Datetime_UTC, DATE, TIME, EVENTNO, LAT_DD, LONG_DD, LEGTYPE, LEGSTAGE, 
                 HEADING, VISIBLTY, BEAUFORT, CLOUD, WX, SIGHTNO, SPECCODE, NUMBER, NUMCALF, PHOTOS,
-                IDREL, CONFIDNC, ANHEAD, BEHAV1, NOTES, SURVEYTYPE
+                IDREL, CONFIDNC, ANHEAD, BEHAV1, NOTES, EDITS, SURVEYTYPE
                 )%>%
   replace(is.na(.), "")
 
@@ -194,3 +195,4 @@ ggplot(survey3)+
   geom_point(survey3%>%filter(LEGSTAGE != 2), mapping = aes(x = LONG_DD, LAT_DD, color = as.factor(LEGSTAGE)), size = 3, alpha = 0.4)+
   theme(legend.position = "bottom")+
   facet_wrap(~DATE, scales = "free")
+
