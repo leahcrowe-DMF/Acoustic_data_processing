@@ -132,12 +132,12 @@ survey2<-survey%>%
   dplyr::select(OBJECTID, DDSOURCE, VESSEL, Datetime_UTC, DATE, TIME, EVENTNO, LAT_DD, LONG_DD, LEGTYPE, LEGSTAGE, 
                 HEADING, VISIBLTY, BEAUFORT, CLOUD, WX, SIGHTNO, SPECCODE, NUMBER, NUMCALF, PHOTOS,
                 IDREL, CONFIDNC, ANHEAD, BEHAV1, NOTES, SURVEYTYPE
-                )
+                )%>%
+  replace(is.na(.), "")
 
 write.csv(survey2, paste0("./data/MADMF-NARWC_", as.Date(date_start), "-", as.Date(date_end),"_wAcoustic.csv"), row.names = F)
 
 # cut out survey when focused on Acoustic monitoring ----
-
 ## how many times a survey note occurs consecutively ----
 survey2%>%
   filter(SURVEYTYPE == "Survey note")%>%
@@ -172,7 +172,7 @@ survey3<-survey2%>%
   filter(legstage2 != 99)%>%
   mutate(legstage2 = 
            case_when(
-             legstage2 == 5 & lag(SURVEYTYPE) == "Acoustic station (dedicated looking is paused to focus on acoustic equiptment recovery and deployment)"
+             legstage2 == 5 & lag(SURVEYTYPE) == "Acoustic station (dedicated looking is paused to focus on acoustic equipment recovery and deployment)"
                                   ~ 1,
              TRUE ~ legstage2)
            )%>%
@@ -189,10 +189,8 @@ nrow(survey3)
 library(ggplot2)
 
 ggplot(survey3)+
-  geom_point(aes(x = LONG_DD, LAT_DD, color = SURVEYTYPE))+
+  geom_point(aes(x = LONG_DD, LAT_DD, color = as.factor(LEGSTAGE)), size = 0.5)+
   #geom_point(aes(x = LONG_DD, LAT_DD), color = "black")+
-  geom_point(survey3%>%filter(legstage2 != 2), mapping = aes(x = LONG_DD, LAT_DD, color = as.factor(legstage2)), size = 5)+
+  geom_point(survey3%>%filter(LEGSTAGE != 2), mapping = aes(x = LONG_DD, LAT_DD, color = as.factor(LEGSTAGE)), size = 3, alpha = 0.4)+
   theme(legend.position = "bottom")+
   facet_wrap(~DATE, scales = "free")
-  xlim(c(-70.75,-70.74))+
-  ylim(c(42.3,42.4))
