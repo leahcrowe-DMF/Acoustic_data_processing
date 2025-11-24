@@ -37,7 +37,14 @@ max(nchar(analysis_data_df$comments))
 
 analysis_data_df%>%filter(grepl('?',validation, fixed = TRUE))
 
+analysis_data_df%>%filter(grepl('h',validation, fixed = TRUE))%>%distinct(Deployment, date)
+
 analysis_data_df%>%filter(date == "2025-04-19" & Deployment == "EOS08")
+
+
+analysis_data_df%>%filter(Deployment == "CCB07")%>%
+  filter(Call.type.translation == "Humpback whale" & validation == "")%>%
+  filter(date < "2025-06-01")
 
 #str(analysis_data_df)
 
@@ -75,7 +82,7 @@ right_whale_false_sp<-false_sp%>%
 ggplot(right_whale_false_sp%>%filter(confidence != "Possible"))+
   geom_histogram(aes(x = Mahalanobis.distance), binwidth = 0.5)+
   facet_wrap(~Call.type)+
-  ggtitle("Wrong species")
+  ggtitle("Wrong species LFDCS, right whale")
 
 library(ggplot2)
 
