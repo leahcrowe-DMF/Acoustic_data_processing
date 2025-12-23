@@ -1,3 +1,5 @@
+#install.packages("arcgisbinding", repos="https://r.esri.com", type="win.binary")
+
 library(arcgis);library(arcgisbinding);
 library(arcgisutils);library(dplyr);library(lubridate);
 library(stringr);library(geosphere);library(sf);library(tidyr)
