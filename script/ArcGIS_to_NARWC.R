@@ -16,20 +16,26 @@ my_token <- auth_user(
 set_arc_token(my_token)
 
 ## establish time of interest ----
-date_start<-ymd_hms("2025-01-01 00:00:01")
-date_end<-ymd_hms(Sys.time())
-
+date_start<-ymd_hms("2025-01-01 00:00:01", tz = "America/New_York")
+date_start<-with_tz(date_start, tzone = "UTC")
+date_end<-ymd_hms(Sys.time(), tz = "America/New_York")
+date_end<-with_tz(date_end, tzone = "UTC")
 # pull data ----
 
 ## trackline ----
-trackline<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/services/Acoustic_Monitor_Deployment_Survey_Track_Points_view/FeatureServer/0")%>%
+trackline<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/services/Acoustic_Monitor_Deployment_Survey_Track_Points/FeatureServer/0")%>%
   mutate(data_file = "tracks")%>%
+  arrange(CaptureDate)%>%
+  mutate(CaptureDate = with_tz(CaptureDate, tzone = "UTC"))%>%
   filter(CaptureDate >= date_start & CaptureDate < date_end)
 names(trackline)
 head(trackline)
 
+tz(trackline$CaptureDate)
+
 ## sightings ----
 sightings<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/services/Species_Sighting/FeatureServer/4")%>%
+              arrange(CaptureDate)%>%
               filter(SurveyType == "dedicated")%>%
               dplyr::rename("LAT_DD" = "S_LAT", "LONG_DD" = "S_LONG")%>%
               mutate(data_file = "sigs")%>%
@@ -38,20 +44,30 @@ sightings<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/s
                 TRUE ~ SPECCODE))%>%
               mutate(NOTES = paste0(NOTES, ", RANGE: ", as.character(RANGE), "NM, BEARING: ", as.character(BEARING)))%>%
               mutate(NOTES = str_replace(NOTES, "^, ", ""))%>%
+              mutate(CaptureDate = with_tz(CaptureDate, tzone = "UTC"))%>%
               filter(CaptureDate >= date_start & CaptureDate < date_end)%>%
               mutate(PHOTOS = case_when(
                     grepl("photo", NOTES) ~ 2,
                     TRUE ~ 1
               ))
+
+tz(sightings$CaptureDate)
+
+summary(sightings)
+
 names(sightings)
 head(sightings)
 
 ## conditions ----
 conditions<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/services/Conditions_Observation/FeatureServer/1")%>%
-  mutate(data_file = "conditions")
+  mutate(data_file = "conditions")%>%
+  arrange(CaptureDate)%>%
+  mutate(CaptureDate = with_tz(CaptureDate, tzone = "UTC"))%>%
+  filter(CaptureDate >= date_start & CaptureDate < date_end)
 names(conditions)
 head(conditions)
 
+tz(conditions$CaptureDate)
 # combine data ----
 
 ## bind conditions + sightings to establish sightno ----
@@ -62,6 +78,8 @@ events<-conditions%>%
   group_by(DATE)%>% # group also be vessel in the future
   mutate(SIGHTNO = 1:n())%>%
   filter(CaptureDate >= date_start & CaptureDate < date_end)
+
+head(events)
 
 CCBMB<-events%>%filter(DATE == "2025-09-13")
 
@@ -115,26 +133,50 @@ tail(HEADING_grab)
 survey2<-survey%>%
   mutate(
     LEGTYPE = 5, # POP survey
-    HEADING = HEADING_grab)%>%
-  mutate(HEADING = case_when(
-    HEADING < 0 ~ HEADING + 360, # make vessel heading 0–359
-    TRUE ~ HEADING
-  ))%>%
+    HEADING = round(HEADING, 0),
+    SPEED_KTS = round(SPEED, 1),
+    HEADING2 = HEADING_grab,
+    speed_lag = lag(SPEED_KTS),
+    speed_lead = lead(SPEED_KTS))%>%
+  mutate(HEADING2 = case_when(
+    HEADING2 < 0 ~ HEADING2 + 360, # make vessel heading 0–359
+    TRUE ~ HEADING2))%>%
   group_by(DATE, VESSEL)%>%
   mutate(EVENTNO = 1:n(),
-         EDITS = "")%>% # continuous event number per date/vessel
+         EDITS = "",
+         SPEED_KTS = case_when(
+           is.na(SPEED_KTS) ~ round((speed_lag + speed_lead)/2,1),
+           TRUE ~ SPEED_KTS
+         ))%>% # continuous event number per date/vessel
   mutate(LEGSTAGE = case_when( # legstage starts and ends per date/vessel
      SIGHTNO == 1 & SURVEYTYPE == "Regular survey (looking)" ~ 1,
      EVENTNO == max(EVENTNO) ~ 5, #& SURVEYTYPE == "Regular survey (looking)"
      TRUE ~ 2
+   ),
+   SPEED_KTS = case_when( #remaining speeds which can't average
+     is.na(SPEED_KTS) & !is.na(speed_lag) ~ speed_lag,
+     is.na(SPEED_KTS) & !is.na(speed_lead) ~ speed_lead,
+     TRUE ~ SPEED_KTS
+   ),
+   HEADING = case_when( #sightings which don't have headings
+     is.na(HEADING) ~ HEADING2,
+     TRUE ~ HEADING
    ))%>%
+  mutate(NUMCALF = str_replace(NUMCALF, "0", ""))%>%
+  mutate(SPECCODE = str_replace(SPECCODE, "OSCU", "OCSU"))%>%
+  mutate(SPECCODE = str_replace(SPECCODE, "PINN", "UNSE"))%>%
   as.data.frame()%>%
   dplyr::select(-GlobalID, -CreationDate, -Creator, -EditDate, -Editor, -HorizontalAccuracy, -LatestSurveyEffort, -geometry)%>%
   dplyr::select(OBJECTID, DDSOURCE, VESSEL, Datetime_UTC, DATE, TIME, EVENTNO, LAT_DD, LONG_DD, LEGTYPE, LEGSTAGE, 
-                HEADING, VISIBLTY, BEAUFORT, CLOUD, WX, SIGHTNO, SPECCODE, NUMBER, NUMCALF, PHOTOS,
+                HEADING, SPEED_KTS, VISIBLTY, BEAUFORT, CLOUD, WX, SIGHTNO, SPECCODE, NUMBER, NUMCALF, PHOTOS,
                 IDREL, CONFIDNC, ANHEAD, BEHAV1, NOTES, EDITS, SURVEYTYPE
                 )%>%
   replace(is.na(.), "")
+
+survey2$HEADING<-as.numeric(survey2$HEADING)
+survey2$SPEED_KTS<-as.numeric(survey2$SPEED_KTS)
+
+summary(survey2)
 
 write.csv(survey2, paste0("./data/MADMF-NARWC_", as.Date(date_start), "-", as.Date(date_end),"_wAcoustic.csv"), row.names = F)
 
@@ -149,6 +191,11 @@ survey2%>%
 
 ## update legstage ----
 # should EVENTNO be updated?
+
+survey2%>%
+  filter(SPECCODE != "" & grepl("Acoustic", SURVEYTYPE))%>%
+  mutate(LEGTYPE = ,
+         LEGSTAGE = )
 
 survey3<-survey2%>%
   group_by(DATE, VESSEL)%>%
@@ -196,3 +243,10 @@ ggplot(survey3)+
   theme(legend.position = "bottom")+
   facet_wrap(~DATE, scales = "free")
 
+ggplot(survey2)+
+  geom_point(aes(x = hour(Datetime_UTC), DATE, color = as.factor(VESSEL)), size = 0.5)
+
+#
+survey2%>%filter(SPECCODE == "OSCU")
+survey2%>%filter(SPECCODE == "OCSU")
+survey2%>%filter(SPECCODE == "UNSE")
