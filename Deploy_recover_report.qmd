@@ -1,0 +1,56 @@
+---
+editor: visual
+fontsize: 12pt
+geometry: margin=1in
+header-includes:
+  - \usepackage{setspace}
+  - \linespread{1.25}
+  - \floatplacement{table}{H}
+format:
+  pdf:
+    documentclass: report
+    keep-tex: true
+    mainfont: "Times New Roman"
+    fig-pos: 'H'
+---
+
+```{r, datagrab}
+#| echo: false
+#| message: false
+#| warning: false
+
+source('./script/deploy_recover_datafromArcGIS.R', local = TRUE)$value
+
+#all_deploy_data
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+##
+
+library(kableExtra)
+
+report_table<-all_deploy_data%>%
+  dplyr::select(PAMID, Deploy_Datetime_ET, Deploy_LAT, Deploy_LON, DEPTHFT, Recover_Datetime_ET, Recover_LAT, Recover_LON)%>%
+  mutate(Deployment_duration_days = round(as.numeric(Recover_Datetime_ET - Deploy_Datetime_ET), 0))%>%
+  mutate(Notes = case_when(
+    PAMID == "GSC13_02" ~ "Broke from mooring, SoundTrap not recovered",
+    PAMID == "NSO14_02" ~ "SoundTrap flooded",
+    TRUE ~ ""
+  ))
+
+
+report_table%>%
+   kableExtra::kable(booktabs = T, align = "c", escape = F,
+      col.names = c("Site ID", "Datetime (ET)","Lat", "Lon", "Depth (ft)", "Datetime (ET)", "Lat", "Lon", "Duration (days)", "Notes"),
+      caption = "Deployment details for MA DMF passive acoustic monitoring during the reporting period")%>%
+  add_header_above(c(" " = 1, "Deployment" = 4, "Recovery" = 3, " " = 2))%>%
+  kable_styling(font_size = 7)%>%
+  column_spec(5, width = "0.5cm")%>%
+  column_spec(9, width = "1cm")%>%
+  column_spec(10, width = "3cm")
+
+```
