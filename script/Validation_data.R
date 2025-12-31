@@ -28,6 +28,7 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>%
     grepl("r",validation) ~ "Right whale",
     grepl("h",validation) ~ "Humpback whale",
     grepl("s",validation) ~ "Sei whale",
+    grepl("m",validation) ~ "Minke whale",
     TRUE ~ ""
   ))%>%
   mutate(date = as.Date(start.time),
@@ -86,23 +87,46 @@ ggplot(right_whale_false_sp%>%filter(confidence != "Possible"))+
 
 library(ggplot2)
 
+
+## definite detections ----
+
 detection_bin<-analysis_data_df%>%
-  filter(validated_sp == "Right whale")%>%
-  group_by(Deployment, date,confidence)%>%
+  filter(confidence == "Definite")%>%
+  group_by(Deployment, date, tod_bin, validated_sp, confidence)%>%
   mutate(n = n())%>%
   mutate(confidence2 = case_when(
     confidence == "Definite" & n >= 3 ~ "Definite",
     TRUE ~ "Possible"
   ))%>%
-  distinct(Deployment, date, tod_bin, confidence)%>%
-  arrange(Deployment, date, tod_bin, confidence)%>%
-  group_by(Deployment, date, tod_bin)%>%
+  distinct(Deployment, date, tod_bin, validated_sp, confidence2)%>%
+  arrange(Deployment, date, tod_bin, validated_sp, confidence2)%>%
+  group_by(Deployment, date, tod_bin, validated_sp)%>%
   mutate(con_count = 1:n())%>%
   filter(con_count == 1)
   
-detection_bin%>%filter(con_count == 1 & confidence == "Possible")
+detection_bin%>%filter(con_count == 1 & confidence2 == "Possible")
 
-ggplot(detection_bin)+
-  geom_point(aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence))+
+# right whale ----
+
+ggplot(detection_bin%>%filter(validated_sp == "Right whale"))+
+  geom_point(aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2))+
   facet_wrap(~Deployment, ncol = 1)
 
+# humpback whale ----
+
+ggplot(detection_bin%>%filter(validated_sp == "Humpback whale"))+
+  geom_point(aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2))+
+  facet_wrap(~Deployment, ncol = 1)
+
+
+# sei whale ----
+
+ggplot(detection_bin%>%filter(validated_sp == "Sei whale"))+
+  geom_point(aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2))+
+  facet_wrap(~Deployment, ncol = 1)
+
+# minke whale ----
+
+ggplot(detection_bin%>%filter(validated_sp == "Minke whale"))+
+  geom_point(aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2))+
+  facet_wrap(~Deployment, ncol = 1)
