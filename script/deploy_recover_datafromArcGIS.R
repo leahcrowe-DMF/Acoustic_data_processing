@@ -40,3 +40,15 @@ max_deploy_date<-max(as.Date(all_deploy_data$Deploy_Datetime_ET))
 
 write.csv(all_deploy_data, paste0("./data/MADMF-all_deploy_data-thru", max_deploy_date,".csv"), row.names = F)
 
+ontheboat<-all_deploy_data%>%
+  filter(is.na(Recover_LAT))%>%
+  dplyr::select(PAMID, SAT_beacon_ID, SoundTrap_ID, VR2_ID, Deploy_Datetime_ET, Deploy_LAT, Deploy_LON, DEPTHFT)%>%
+  mutate(Deploy_LAT_dd = paste0(substr(Deploy_LAT, 1, 2)),
+         Deploy_LAT_mm = round((Deploy_LAT - as.numeric(Deploy_LAT_dd))*60,2),
+         Deploy_LON_dd = paste0(substr(Deploy_LON, 1, 3)),
+         Deploy_LON_mm = round((Deploy_LON - as.numeric(Deploy_LON_dd))*-60,2))
+
+write.csv(ontheboat, paste0("./data/MADMF-ontheboat_", Sys.Date(),".csv"), row.names = F)
+  
+
+0.03984*60
