@@ -17,6 +17,14 @@
 *	Specify “Maximum Mahalanobis distance filter” as 3
 *	Export date/time in text format with fractional seconds = True
 * OK
+
+If trouble with this step:
+
+    * Run: ./LFDCS/process/configure_dlm_folder
+    * When asked to add directory, click "Yes"
+    * Select: ./LFDCS/dlm for the directory
+    * See "Required for Installing on a Windows Computer: Configuring the 'dlm' Folder" in the LFDSC manual for more details.
+    
   
 2. Run “LFDCS_to_Raven.R”
    * change manual parameters including the position of deployment
