@@ -33,7 +33,7 @@ start_deploy
 identical(unique(all_wav$STID), ST_ID)
 
 ## LFDCS output as csv ----
-filename = paste0(site,"_",deployment_number,"-all_LFDCS_Mah3")
+filename = paste0(site,"_",deployment_number,"-",ST_ID,"-all_LFDCS_Mah3")
  
 # read in LFDCS detections ----
 all_lines<-read.delim(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")
