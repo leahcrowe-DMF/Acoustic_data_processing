@@ -36,7 +36,7 @@ all_deploy_data<-PAM%>%filter(DEPLOYSTATUS == "Deployment")%>%dplyr::select(PAMI
   arrange(Deploy_Datetime_ET)%>%
   dplyr::select(PAMID, SAT_beacon_ID, SoundTrap_ID,VR2_ID, Deploy_Datetime_ET, Deploy_LAT, Deploy_LON, DEPTHFT, `Pre-deploy_notes`, Deploy_notes, Recover_Datetime_ET, Recover_LAT, Recover_LON, Recover_notes)
 
-max_deploy_date<-max(as.Date(all_deploy_data$Deploy_Datetime_ET))
+max_deploy_date<-max(as.Date(all_deploy_data$Deploy_Datetime_ET), na.rm = T)
 
 write.csv(all_deploy_data, paste0("./data/MADMF-all_deploy_data-thru", max_deploy_date,".csv"), row.names = F)
 
@@ -49,6 +49,16 @@ ontheboat<-all_deploy_data%>%
          Deploy_LON_mm = round((Deploy_LON - as.numeric(Deploy_LON_dd))*-60,2))
 
 write.csv(ontheboat, paste0("./data/MADMF-ontheboat_", Sys.Date(),".csv"), row.names = F)
-  
 
-0.03984*60
+## fishing gear ---
+
+gear<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/services/Fishing_Gear_Sighting/FeatureServer/2")
+
+geardate = "2026-02-16"
+
+gear_table<-gear%>%
+  filter(CaptureDate > paste0(geardate, " 00:00:00"))%>%
+  filter(LatestSurveyEffort == "yes")%>%
+  dplyr::select(CaptureDate, LAT_DD, LONG_DD, SPECCODE, GEARCOUNT, RANGE, BEARING, BUOYCOLORS, NOTES )
+
+write.csv(gear_table, paste0("./data/MADMF-PAM-gear_", geardate,".csv"), row.names = F)
