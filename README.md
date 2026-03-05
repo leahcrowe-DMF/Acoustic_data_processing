@@ -8,8 +8,8 @@
 *	Specify “Output CSV file”
     - save inside "lfdcs_processed" folder
     - remember to include “.csv” at the end
-    - Name file as “deployment ID” + “-all_LFDCS_Mah3”
-    -	Example: CCB01_01-all_LFDCS_Mah3.csv
+    - Name file as “deployment ID” + "-ST ID" + “-all_LFDCS_Mah3”
+    -	Example: CCB01_01-1234-all_LFDCS_Mah3.csv
 * For the clnb_gom9
     - Narrowband only = True
     - Broadband only = False 
