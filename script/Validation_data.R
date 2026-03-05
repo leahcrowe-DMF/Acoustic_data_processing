@@ -2,6 +2,7 @@ library(dplyr);library(lubridate)
 
 path<-"C:/Users/Leah.M.Crowe/OneDrive - Commonwealth of Massachusetts/PAM_analysis_backup"
 
+#read all files in the folder
 analysis_files<-as.data.frame(list.files(path))%>%
   dplyr::rename(filename = `list.files(path)`)%>%
   mutate(fullpath = paste0(path,"/",filename))
@@ -17,7 +18,7 @@ analysis_data_ls<-lapply(analysis_files_ls, function(x){
   
   read.table(x$fullpath, header = T, sep = "\t", quote = "")%>%
          mutate(Deployment = substr(x[[1]],1,5),
-                Analyst = substr(x[[1]],33,35))}
+                Analyst = substr(x[[1]],38,40))}
   )
 
 analysis_data_df<-bind_rows(analysis_data_ls)%>%
@@ -52,7 +53,7 @@ analysis_data_df%>%filter(date == "2025-04-19" & Deployment == "EOS08")
 analysis_data_df%>%filter(Deployment == "MBW05" & tod_bin == "")
 
 analysis_data_df%>%filter(Deployment == "MBW05" & 
-                            ymd_hms(start.time) > ymd_hms("2025-06-15 00:00:02") & 
+                            ymd_hms(start.time) < ymd_hms("2025-06-01 00:00:02") & 
                             Call.type.translation == "Right whale" & validation == "")
 
 analysis_data_df%>%filter(Deployment == "CCB07")%>%
@@ -142,7 +143,12 @@ ggplot(detection_date)+
   facet_wrap(~validated_sp, ncol = 1)
 
 detection_date%>%filter(Deployment == "EOS08" & validated_sp == "Humpback whale" & confidence2 == "Possible")
-detection_date%>%filter(Deployment == "MBW05" & validated_sp == "Humpback whale")
+
+### ----
+#Use the below to find days to doublecheck "r?" and look for any unclassified upcalls
+detection_date%>%filter(Deployment == "MBW05" & validated_sp == "Right whale" & confidence2 == "Possible")
+###
+
 detection_date%>%filter(Deployment == "EOS08" & validated_sp == "Minke whale")
 # right whale ----
 
