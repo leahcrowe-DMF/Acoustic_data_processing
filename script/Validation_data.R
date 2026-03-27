@@ -60,9 +60,20 @@ analysis_data_df%>%filter(Deployment == "CCB07")%>%
   filter(Call.type.translation == "Humpback whale" & validation == "")%>%
   filter(date < "2025-06-01")
 
-#str(analysis_data_df)
+analysis_data_df%>%filter(Deployment == "JEF02")%>%
+  filter(validation == "r")
 
+# megapclicks ----
+magapclicks<-analysis_data_df%>%filter(grepl("megap",comments))
 
+# Mn song -----
+Mnsong<-analysis_data_df%>%filter(grepl("song",comments) & validated_sp == "Humpback whale" & confidence == "Definite")
+
+ggplot(Mnsong)+
+  geom_point(aes(x = date, y = Deployment, color = confidence))+
+  ggtitle("Detection of humpback song")
+
+# plot false detections and true positives ------
 library(ggplot2)
 
 true_positives<-analysis_data_df%>%
