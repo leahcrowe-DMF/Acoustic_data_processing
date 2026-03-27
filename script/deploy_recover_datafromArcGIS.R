@@ -54,11 +54,11 @@ write.csv(ontheboat, paste0("./data/MADMF-ontheboat_", Sys.Date(),".csv"), row.n
 
 gear<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/services/Fishing_Gear_Sighting/FeatureServer/2")
 
-geardate = "2026-02-16"
+geardate = "2026-02-28"
 
 gear_table<-gear%>%
   filter(CaptureDate > paste0(geardate, " 00:00:00"))%>%
   filter(LatestSurveyEffort == "yes")%>%
-  dplyr::select(CaptureDate, LAT_DD, LONG_DD, SPECCODE, GEARCOUNT, RANGE, BEARING, BUOYCOLORS, NOTES )
+  dplyr::select(CaptureDate, LAT_DD, LONG_DD, SPECCODE, GEARCOUNT, RANGE, BEARING, BUOYCOLORS, NOTES)
 
 write.csv(gear_table, paste0("./data/MADMF-PAM-gear_", geardate,".csv"), row.names = F)
