@@ -18,7 +18,7 @@ set_arc_token(my_token)
 ## establish time of interest ----
 date_start<-ymd_hms("2025-01-01 00:00:01", tz = "America/New_York")
 date_start<-with_tz(date_start, tzone = "UTC")
-date_end<-ymd_hms(Sys.time(), tz = "America/New_York")
+date_end<-ymd_hms("2025-12-31 00:00:01", tz = "America/New_York")
 date_end<-with_tz(date_end, tzone = "UTC")
 # pull data ----
 
@@ -39,6 +39,9 @@ sightings<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/s
               filter(SurveyType == "dedicated")%>%
               dplyr::rename("LAT_DD" = "S_LAT", "LONG_DD" = "S_LONG")%>%
               mutate(data_file = "sigs")%>%
+              mutate(NOTES = case_when(
+                is.na(NOTES) ~ "",
+                TRUE ~ NOTES))%>%
               mutate(SPECCODE = case_when(
                 SPECCODE == "OTHER" ~ SPECOTHER,
                 TRUE ~ SPECCODE))%>%
@@ -52,6 +55,8 @@ sightings<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/s
               ))
 
 tz(sightings$CaptureDate)
+
+unique(sightings$NOTES)
 
 summary(sightings)
 
@@ -198,10 +203,10 @@ survey2%>%
 ## update legstage ----
 # should EVENTNO be updated?
 
-survey2%>%
+survey2_offwatchsig<-survey2%>%
   filter(SPECCODE != "" & grepl("Acoustic", SURVEYTYPE))%>%
-  mutate(LEGTYPE = ,
-         LEGSTAGE = )
+  mutate(LEGTYPE = 0,
+         LEGSTAGE = 0)
 
 survey3<-survey2%>%
   group_by(DATE, VESSEL)%>%
@@ -231,10 +236,19 @@ survey3<-survey2%>%
              TRUE ~ legstage2)
            )%>%
   mutate(LEGSTAGE = legstage2)%>%
+  bind_rows(survey2_offwatchsig)%>%
+  arrange(DATE)%>%
   dplyr::select(-SURVEYTYPE, -legstage2)
+
+head(survey3)
 
 write.csv(survey3, paste0("./data/MADMF-NARWC_", as.Date(date_start), "-", as.Date(date_end),".csv"), row.names = F)
   
+survey2%>%filter(NUMBER > 0)%>%tally()
+survey2%>%filter(SPECCODE != "")%>%tally()
+survey3%>%filter(NUMBER > 0)%>%tally()
+survey3%>%filter(SPECCODE != "")%>%tally()
+
 nrow(survey2)
 nrow(survey3)
 
@@ -248,6 +262,7 @@ ggplot(survey3)+
   geom_point(survey3%>%filter(LEGSTAGE != 2), mapping = aes(x = LONG_DD, LAT_DD, color = as.factor(LEGSTAGE)), size = 3, alpha = 0.4)+
   theme(legend.position = "bottom")+
   facet_wrap(~DATE, scales = "free")
+
 
 ggplot(survey2)+
   geom_point(aes(x = hour(Datetime_UTC), DATE, color = as.factor(VESSEL)), size = 0.5)
