@@ -10,10 +10,8 @@ library(stringr);library(geosphere);library(sf);library(tidyr)
 arc.check_product()
 
 ## GIS access token to grab program data ----
-my_token <- auth_user(
-  username = "leah.crowe_DMF",
-  password = pswd
-)
+
+source("~/git/_general/token.R", local = TRUE)$value
 
 set_arc_token(my_token)
 
@@ -173,12 +171,18 @@ survey2<-survey%>%
                 HEADING, SPEED_KTS, VISIBLTY, BEAUFORT, CLOUD, WX, SIGHTNO, SPECCODE, NUMBER, NUMCALF, PHOTOS,
                 IDREL, CONFIDNC, ANHEAD, BEHAV1, NOTES, EDITS, SURVEYTYPE
                 )%>%
-  replace(is.na(.), "")
+  replace(is.na(.), "")%>%
+  mutate(HEADING = case_when(
+    HEADING == 360 ~ 0,
+    TRUE ~ HEADING
+  ))
 
 survey2$HEADING<-as.numeric(survey2$HEADING)
 survey2$SPEED_KTS<-as.numeric(survey2$SPEED_KTS)
 
 summary(survey2)
+
+survey2%>%filter(HEADING == 0)
 
 write.csv(survey2, paste0("./data/MADMF-NARWC_", as.Date(date_start), "-", as.Date(date_end),"_wAcoustic.csv"), row.names = F)
 
