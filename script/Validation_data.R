@@ -1,4 +1,4 @@
-library(dplyr);library(lubridate)
+library(dplyr);library(lubridate);library(ggplot2)
 
 path<-"C:/Users/Leah.M.Crowe/OneDrive - Commonwealth of Massachusetts/PAM_analysis_backup"
 
@@ -22,6 +22,13 @@ analysis_data_ls<-lapply(analysis_files_ls, function(x){
   )
 
 analysis_data_df<-bind_rows(analysis_data_ls)%>%
+  mutate(validation = case_when(
+        validation == "nn" ~ "n",
+         validation == "rh" ~ "r?",
+         validation == "rh?" ~ "r?",
+         validation == "f" ~ "n",
+        validation == "b" ~ "n", ## fixing Manali's typo
+         TRUE ~ validation))%>%
   mutate(confidence = case_when(
     grepl("?",validation, fixed = TRUE) ~ "Possible",
     validation == "n" ~ "False detection",
@@ -39,6 +46,7 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>%
   mutate(date = as.Date(start.time),
          time = substr(start.time, 12, 20))
 
+analysis_data_df%>%filter(validated_sp == "")
 
 analysis_data_df%>%filter(validated_sp == "Minke whale")
 
@@ -56,16 +64,25 @@ analysis_data_df%>%filter(Deployment == "MBW05" &
                             ymd_hms(start.time) < ymd_hms("2025-06-01 00:00:02") & 
                             Call.type.translation == "Right whale" & validation == "")
 
-analysis_data_df%>%filter(Deployment == "CCB07")%>%
+analysis_data_df%>%filter(Deployment == "CCB06")%>%
   filter(Call.type.translation == "Humpback whale" & validation == "")%>%
   filter(date < "2025-06-01")
 
 analysis_data_df%>%filter(Deployment == "JEF02")%>%
   filter(validation == "r")
 
-# megapclicks ----
-magapclicks<-analysis_data_df%>%filter(grepl("megap",comments))
+# talk to Manali about this, classified right whales without validation
+analysis_data_df%>%filter(Deployment == "CCB06")%>%
+  filter(validation == "" & Call.type.translation == "Right whale")
 
+unique(analysis_data_df$validation)
+
+analysis_data_df%>%filter(Deployment == "CCB06")%>%
+  filter(validation == "b")
+
+# megapclicks ----
+megapclicks<-analysis_data_df%>%filter(grepl("megap",comments))
+unique(megapclicks$Deployment)
 # Mn song -----
 Mnsong<-analysis_data_df%>%filter(grepl("song",comments) & validated_sp == "Humpback whale" & confidence == "Definite")
 
@@ -74,7 +91,7 @@ ggplot(Mnsong)+
   ggtitle("Detection of humpback song")
 
 # plot false detections and true positives ------
-library(ggplot2)
+
 
 true_positives<-analysis_data_df%>%
   filter(Call.type.translation == validated_sp)
@@ -147,6 +164,10 @@ detection_date<-analysis_data_df%>%
   mutate(con_count = 1:n())%>%
   filter(con_count == 1)
 
+unique(detection_date$validated_sp)
+
+detection_date%>%filter(validated_sp == "")
+
 # species by Deployment
 
 ggplot(detection_date)+
@@ -155,17 +176,48 @@ ggplot(detection_date)+
 
 detection_date%>%filter(Deployment == "EOS08" & validated_sp == "Humpback whale" & confidence2 == "Possible")
 
+detection_date%>%filter(validated_sp == "")
+
 ### ----
 #Use the below to find days to doublecheck "r?" and look for any unclassified upcalls
 detection_date%>%filter(Deployment == "MBW05" & validated_sp == "Right whale" & confidence2 == "Possible")
 ###
 
 detection_date%>%filter(Deployment == "EOS08" & validated_sp == "Minke whale")
-# right whale ----
+# right whale time of day----
 
-ggplot(detection_bin%>%filter(validated_sp == "Right whale"))+
-  geom_point(aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2))+
-  facet_wrap(~Deployment, ncol = 1)
+NARW_det<-detection_bin%>%filter(validated_sp == "Right whale")
+NARW_det$Deployment<-factor(NARW_det$Deployment, levels = c("EOS08","CCB07","CCB06","MBW05","MBW04","JEF03","JEF02"))
+
+
+ggplot(NARW_det)+
+  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), y = Deployment, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("MBW04","MBW05","CCB06","CCB07")))+
+  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), y = Deployment, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("JEF02","JEF03")))+#"JEF01",,"TIL15"
+  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = Deployment, height = 1), fill = "red", alpha = 0.2, data = data.frame(Deployment = unique(NARW_det$Deployment)))+
+  geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = Deployment, height = 1), fill = "red", alpha = 0.2, data = data.frame(Deployment = unique(NARW_det$Deployment)))+
+  geom_rect(mapping = aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"), y = Deployment, height = 1), fill = "blue", alpha = 0.2, data = data.frame(Deployment =  c("MBW04","CCB06","CCB07","EOS08")))+
+  #geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = Deployment, height = 1), fill = "red", alpha = 0.2, data = data.frame(Deployment = unique(NARW_det$Deployment)))+
+  geom_point(NARW_det%>%filter(confidence2 == "Possible"), mapping = aes(x = date, y = Deployment, color = confidence2))+
+  geom_point(NARW_det%>%filter(confidence2 == "Definite"), mapping = aes(x = date, y = Deployment, color = confidence2))+
+  facet_wrap(~validated_sp, ncol = 1)+
+  scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+
+  scale_color_viridis_d(begin = 0.8, end = 0)+
+  theme_bw()+
+  theme(legend.position = "bottom",
+        legend.title = element_blank())
+
+ggplot(NARW_det)+
+  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("MBW04","MBW05","CCB06","CCB07")))+
+  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("JEF02","JEF03")))+#"JEF01",,"TIL15"
+  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = "MRA", height = 0.5), fill = "red")+
+  geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = "MRA", height = 0.5), fill = "red")+
+  geom_point(detection_bin%>%filter(validated_sp == "Right whale" & confidence2 == "Possible"), mapping = aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2), alpha = 0.6)+
+  geom_point(detection_bin%>%filter(validated_sp == "Right whale" & confidence2 == "Definite"), mapping = aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2), alpha = 0.6)+
+  facet_wrap(~Deployment, ncol = 1)+
+  scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+
+  scale_color_viridis_d(end = 0.8)+
+  theme_bw()+
+  ylab("")
 
 detection_bin%>%filter(validated_sp == "Right whale" & confidence2 == "Possible")%>%filter(Deployment == "EOS08")%>%ungroup()%>%distinct(date, tod_bin)
 
