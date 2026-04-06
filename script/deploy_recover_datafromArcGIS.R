@@ -7,12 +7,7 @@ library(stringr);library(geosphere);library(sf);library(tidyr)
 arc.check_product()
 
 ## GIS access token to grab program data ----
-source('./script/pswd.R', local = TRUE)$value
-
-my_token <- auth_user(
-  username = "leah.crowe_DMF",
-  password = pswd
-)
+source("~/git/_general/token.R", local = TRUE)$value
 
 set_arc_token(my_token)
 
