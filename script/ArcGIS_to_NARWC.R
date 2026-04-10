@@ -205,7 +205,7 @@ survey2%>%
 
 survey2_offwatchsig<-survey2%>%
   filter(SPECCODE != "" & grepl("Acoustic", SURVEYTYPE))%>%
-  mutate(LEGTYPE = 0,
+  mutate(LEGTYPE = 6, #POP ship not underway
          LEGSTAGE = 0)
 
 survey3<-survey2%>%
@@ -237,17 +237,22 @@ survey3<-survey2%>%
            )%>%
   mutate(LEGSTAGE = legstage2)%>%
   bind_rows(survey2_offwatchsig)%>%
-  arrange(DATE)%>%
+  arrange(Datetime_UTC)%>%
   dplyr::select(-SURVEYTYPE, -legstage2)
 
 head(survey3)
 
 write.csv(survey3, paste0("./data/MADMF-NARWC_", as.Date(date_start), "-", as.Date(date_end),".csv"), row.names = F)
-  
+
+survey3%>%
+  filter(str_replace_all(substr(Datetime_UTC,12,19), ":","") != TIME)
+
 survey2%>%filter(NUMBER > 0)%>%tally()
 survey2%>%filter(SPECCODE != "")%>%tally()
 survey3%>%filter(NUMBER > 0)%>%tally()
 survey3%>%filter(SPECCODE != "")%>%tally()
+
+survey3%>%filter(Datetime_UTC > ymd_hms("2025-08-27 12:54:54"))
 
 nrow(survey2)
 nrow(survey3)
@@ -271,3 +276,4 @@ ggplot(survey2)+
 survey2%>%filter(SPECCODE == "OSCU")
 survey2%>%filter(SPECCODE == "OCSU")
 survey2%>%filter(SPECCODE == "UNSE")
+
