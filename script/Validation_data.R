@@ -26,7 +26,7 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>%
         validation == "nn" ~ "n",
          validation == "rh" ~ "r?",
          validation == "rh?" ~ "r?",
-         validation == "f" ~ "n",
+         validation == "f" ~ "n", # fin whale?
         validation == "b" ~ "n", ## fixing Manali's typo
          TRUE ~ validation))%>%
   mutate(confidence = case_when(
@@ -72,6 +72,7 @@ analysis_data_df%>%filter(Deployment == "JEF02")%>%
   filter(validation == "r")
 
 # talk to Manali about this, classified right whales without validation
+# these probably manual validations that need validated_sp = r
 analysis_data_df%>%filter(Deployment == "CCB06")%>%
   filter(validation == "" & Call.type.translation == "Right whale")
 
@@ -103,31 +104,28 @@ false_sp<-analysis_data_df%>%
 false_detections<-analysis_data_df%>%
   filter(confidence == "False detection")
 
-ggplot(true_positives)+
-  geom_histogram(aes(x = Mahalanobis.distance))+
-  facet_wrap(~Call.type)+
-  ggtitle("True positives")
-
-ggplot(false_sp)+
-  geom_histogram(aes(x = Mahalanobis.distance))+
-  facet_wrap(~Call.type)+
-  ggtitle("Wrong species")
-
-ggplot(false_detections)+
-  geom_histogram(aes(x = Mahalanobis.distance))+
-  facet_wrap(~Call.type)+
-  ggtitle("False detections")
+# ggplot(true_positives)+
+#   geom_histogram(aes(x = Mahalanobis.distance))+
+#   facet_wrap(~Call.type)+
+#   ggtitle("True positives")
+# 
+# ggplot(false_sp)+
+#   geom_histogram(aes(x = Mahalanobis.distance))+
+#   facet_wrap(~Call.type)+
+#   ggtitle("Wrong species")
+# 
+# ggplot(false_detections)+
+#   geom_histogram(aes(x = Mahalanobis.distance))+
+#   facet_wrap(~Call.type)+
+#   ggtitle("False detections")
 
 right_whale_false_sp<-false_sp%>%
   filter(validated_sp == "Right whale")
 
-ggplot(right_whale_false_sp%>%filter(confidence != "Possible"))+
-  geom_histogram(aes(x = Mahalanobis.distance), binwidth = 0.5)+
-  facet_wrap(~Call.type)+
-  ggtitle("Wrong species LFDCS, right whale")
-
-library(ggplot2)
-
+# ggplot(right_whale_false_sp%>%filter(confidence != "Possible"))+
+#   geom_histogram(aes(x = Mahalanobis.distance), binwidth = 0.5)+
+#   facet_wrap(~Call.type)+
+#   ggtitle("Wrong species LFDCS, right whale")
 
 ## definite detections ----
 
@@ -174,21 +172,19 @@ ggplot(detection_date)+
   geom_point(aes(x = date, y = Deployment, color = confidence2))+
   facet_wrap(~validated_sp, ncol = 1)
 
-detection_date%>%filter(Deployment == "EOS08" & validated_sp == "Humpback whale" & confidence2 == "Possible")
+detection_date%>%filter(Deployment == "JEF02" & validated_sp == "Humpback whale" & confidence2 == "Possible")
 
 detection_date%>%filter(validated_sp == "")
 
 ### ----
 #Use the below to find days to doublecheck "r?" and look for any unclassified upcalls
-detection_date%>%filter(Deployment == "MBW05" & validated_sp == "Right whale" & confidence2 == "Possible")
+detection_date%>%filter(Deployment == "JEF02" & validated_sp == "Right whale" & confidence2 == "Possible")
 ###
+detection_date%>%filter(Deployment == "JEF02" & validated_sp == "Minke whale")
 
-detection_date%>%filter(Deployment == "EOS08" & validated_sp == "Minke whale")
 # right whale time of day----
-
 NARW_det<-detection_bin%>%filter(validated_sp == "Right whale")
 NARW_det$Deployment<-factor(NARW_det$Deployment, levels = c("EOS08","CCB07","CCB06","MBW05","MBW04","JEF03","JEF02"))
-
 
 ggplot(NARW_det)+
   geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), y = Deployment, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("MBW04","MBW05","CCB06","CCB07")))+
@@ -201,7 +197,7 @@ ggplot(NARW_det)+
   geom_point(NARW_det%>%filter(confidence2 == "Definite"), mapping = aes(x = date, y = Deployment, color = confidence2))+
   facet_wrap(~validated_sp, ncol = 1)+
   scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+
-  scale_color_viridis_d(begin = 0.8, end = 0)+
+  scale_color_viridis_d(end = 0.8)+
   theme_bw()+
   theme(legend.position = "bottom",
         legend.title = element_blank())
@@ -209,8 +205,9 @@ ggplot(NARW_det)+
 ggplot(NARW_det)+
   geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("MBW04","MBW05","CCB06","CCB07")))+
   geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("JEF02","JEF03")))+#"JEF01",,"TIL15"
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = "MRA", height = 0.5), fill = "red")+
-  geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = "MRA", height = 0.5), fill = "red")+
+  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = "MRA", height = 0.5), fill = "red", alpha = 0.5, data = data.frame(Deployment = unique(NARW_det$Deployment)))+
+  geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = "MRA", height = 0.5), fill = "red", alpha = 0.5, data = data.frame(Deployment = unique(NARW_det$Deployment)))+
+  geom_rect(mapping = aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"),  y = "MRA", height = 0.5), fill = "blue", alpha = 0.5, data = data.frame(Deployment =  c("MBW04","CCB06","CCB07","EOS08")))+
   geom_point(detection_bin%>%filter(validated_sp == "Right whale" & confidence2 == "Possible"), mapping = aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2), alpha = 0.6)+
   geom_point(detection_bin%>%filter(validated_sp == "Right whale" & confidence2 == "Definite"), mapping = aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2), alpha = 0.6)+
   facet_wrap(~Deployment, ncol = 1)+
