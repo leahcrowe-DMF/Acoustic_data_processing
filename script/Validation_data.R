@@ -73,10 +73,13 @@ analysis_data_df%>%filter(Deployment == "JEF02")%>%
 
 # talk to Manali about this, classified right whales without validation
 # these probably manual validations that need validated_sp = r
-analysis_data_df%>%filter(Deployment == "CCB06")%>%
+analysis_data_df%>%filter(Deployment == "MBW04")%>%
   filter(validation == "" & Call.type.translation == "Right whale")
 
 unique(analysis_data_df$validation)
+
+analysis_data_df%>%
+  filter(validation == "e?")
 
 analysis_data_df%>%filter(Deployment == "CCB06")%>%
   filter(validation == "b")
@@ -90,6 +93,22 @@ Mnsong<-analysis_data_df%>%filter(grepl("song",comments) & validated_sp == "Hump
 ggplot(Mnsong)+
   geom_point(aes(x = date, y = Deployment, color = confidence))+
   ggtitle("Detection of humpback song")
+
+# dolphins  -----
+dolphins<-bind_rows(analysis_data_ls)%>%
+  filter(dolphins != '')%>%
+  mutate(date = as.Date(start.time),
+         time = substr(start.time, 12, 20))
+unique(dolphins$dolphins)
+
+dolphins%>%filter(dolphins == "vessel")
+dolphins%>%filter(dolphins == "other calls")
+dolphins%>%filter(dolphins == "pinger")
+dolphins%>%filter(dolphins == "r")
+
+ggplot(dolphins)+
+  geom_point(aes(x = date, y = Deployment, color = dolphins))+
+  ggtitle("Dolphin detections")
 
 # plot false detections and true positives ------
 
@@ -184,11 +203,11 @@ detection_date%>%filter(Deployment == "JEF02" & validated_sp == "Minke whale")
 
 # right whale time of day----
 NARW_det<-detection_bin%>%filter(validated_sp == "Right whale")
-NARW_det$Deployment<-factor(NARW_det$Deployment, levels = c("EOS08","CCB07","CCB06","MBW05","MBW04","JEF03","JEF02"))
+NARW_det$Deployment<-factor(NARW_det$Deployment, levels = c("EOS08","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
 
 ggplot(NARW_det)+
   geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), y = Deployment, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("MBW04","MBW05","CCB06","CCB07")))+
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), y = Deployment, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("JEF02","JEF03")))+#"JEF01",,"TIL15"
+  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), y = Deployment, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("JEF01","JEF02","JEF03","TIL15")))+
   geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = Deployment, height = 1), fill = "red", alpha = 0.2, data = data.frame(Deployment = unique(NARW_det$Deployment)))+
   geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = Deployment, height = 1), fill = "red", alpha = 0.2, data = data.frame(Deployment = unique(NARW_det$Deployment)))+
   geom_rect(mapping = aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"), y = Deployment, height = 1), fill = "blue", alpha = 0.2, data = data.frame(Deployment =  c("MBW04","CCB06","CCB07","EOS08")))+
@@ -204,7 +223,7 @@ ggplot(NARW_det)+
 
 ggplot(NARW_det)+
   geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("MBW04","MBW05","CCB06","CCB07")))+
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("JEF02","JEF03")))+#"JEF01",,"TIL15"
+  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Deployment = c("JEF01","JEF02","JEF03","TIL15")))+
   geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = "MRA", height = 0.5), fill = "red", alpha = 0.5, data = data.frame(Deployment = unique(NARW_det$Deployment)))+
   geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = "MRA", height = 0.5), fill = "red", alpha = 0.5, data = data.frame(Deployment = unique(NARW_det$Deployment)))+
   geom_rect(mapping = aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"),  y = "MRA", height = 0.5), fill = "blue", alpha = 0.5, data = data.frame(Deployment =  c("MBW04","CCB06","CCB07","EOS08")))+
