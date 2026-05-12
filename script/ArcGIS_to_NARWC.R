@@ -16,9 +16,9 @@ source("~/git/_general/token.R", local = TRUE)$value
 set_arc_token(my_token)
 
 ## establish time of interest ----
-date_start<-ymd_hms("2025-01-01 00:00:01", tz = "America/New_York")
+date_start<-ymd_hms("2026-01-01 00:00:01", tz = "America/New_York")
 date_start<-with_tz(date_start, tzone = "UTC")
-date_end<-ymd_hms("2025-12-31 00:00:01", tz = "America/New_York")
+date_end<-ymd_hms("2026-12-31 23:59:59", tz = "America/New_York")
 date_end<-with_tz(date_end, tzone = "UTC")
 # pull data ----
 
@@ -176,6 +176,8 @@ survey2<-survey%>%
                 HEADING, SPEED_KTS, VISIBLTY, BEAUFORT, CLOUD, WX, SIGHTNO, SPECCODE, NUMBER, NUMCALF, PHOTOS,
                 IDREL, CONFIDNC, ANHEAD, BEHAV1, NOTES, EDITS, SURVEYTYPE
                 )%>%
+  separate(BEHAV1,
+           into = c("BEHAV1", "BEHAV2", "BEHAV3")) %>%
   replace(is.na(.), "")%>%
   mutate(HEADING = case_when(
     HEADING == 360 ~ 0,
@@ -186,8 +188,12 @@ survey2$HEADING<-as.numeric(survey2$HEADING)
 survey2$SPEED_KTS<-as.numeric(survey2$SPEED_KTS)
 
 summary(survey2)
-
+head(survey2)
 survey2%>%filter(HEADING == 0)
+
+survey2%>%distinct(BEHAV1)
+survey2%>%distinct(BEHAV2)
+survey2%>%distinct(BEHAV3)
 
 write.csv(survey2, paste0("./data/MADMF-NARWC_", as.Date(date_start), "-", as.Date(date_end),"_wAcoustic.csv"), row.names = F)
 
