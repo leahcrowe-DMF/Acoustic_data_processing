@@ -25,6 +25,7 @@ analysis_data_ls<-lapply(analysis_files_ls, function(x){
 
 str(analysis_data_ls$`MBW04_01-8929-all_LFDCS_Mah3-RavenST_MRC.txt`)
 str(analysis_data_ls$`ACK16_01-8852-all_LFDCS_Mah3-RavenST_LMC.txt`)
+head(analysis_data_ls$`EOS10_01-8850-all_LFDCS_Mah3-RavenST_MRC.txt`)
 
 analysis_data_ls$`MBW04_01-8929-all_LFDCS_Mah3-RavenST_MRC.txt`%>%filter(start.time == "")
 
@@ -35,6 +36,7 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>%
          validation == "rh?" ~ "r?",
          validation == "f" ~ "n", # fin whale?
         validation == "b" ~ "n", ## fixing Manali's typo
+        validation == "hh" ~ "h", ## fixing Manali's typo
          TRUE ~ validation))%>%
   mutate(confidence = case_when(
     grepl("?",validation, fixed = TRUE) ~ "Possible",
@@ -53,7 +55,7 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>%
   mutate(date = as.Date(start.time),
          time = substr(start.time, 12, 20))
 
-analysis_data_df%>%filter(Site == "JEF03")%>%distinct(validation)
+analysis_data_df%>%filter(Site == "EOS10")%>%distinct(validation)
 
 analysis_data_df%>%filter(validated_sp == "Minke whale")
 
@@ -242,15 +244,15 @@ NARW_det<-detection_bin%>%filter(validated_sp == "Right whale")%>%filter(tod_bin
 NARW_det$Site
 NARW_det$Site<-factor(NARW_det$Site, levels = c("BUZ17","NSO14","ACK16","GSC11","EOS10","EOS08","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
 ggplot(NARW_det)+
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07")))+
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
+  geom_rect(aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07")))+
+  geom_rect(aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
   #geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-07"), y = "BUZ17", height = 0.25), fill = "black", alpha = 0.2)+
   #annotate("rect", xmin = ymd("2025-09-21"), xmax = ymd("2025-10-11"), y = "JEF03", height = 0.25, fill = "black", alpha = 0.2)+
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
-  geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
-  geom_rect(mapping = aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"), y = Site, height = 1), fill = "blue", alpha = 0.2, data = data.frame(Site =  c("MBW04","CCB06","CCB07","EOS08","EOS10")))+
+  geom_rect(aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
+  geom_rect(aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
+  geom_rect(aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"), y = Site, height = 1), fill = "blue", alpha = 0.2, data = data.frame(Site =  c("MBW04","CCB06","CCB07","EOS08","EOS10")))+
   #geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = unique(NARW_det$Site)))+
-  geom_point(mapping = aes(x = date, y = Site, color = confidence2))+
+  geom_point(aes(x = date, y = Site, color = confidence2))+
   #geom_point(NARW_det%>%filter(confidence2 == "3+ upcalls"), mapping = aes(x = date, y = Site, color = confidence2))+
   facet_wrap(~validated_sp, ncol = 1)+
   scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+
