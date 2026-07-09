@@ -3,13 +3,13 @@ library(dplyr);library(lubridate);library(suncalc)
 # manual params ----
 
 drivepath = "P:/" 
-site = "MBW05"
+site = "CCB19"
 deployment_number = "01"
-ST_ID = "8847"
+ST_ID = "8856"
 
 ## position of deployment ---- 
-lat = 42.280428
-lon = -70.586775
+lat = 41.88209865
+lon = -70.26950737
 
 ## detector choice ----
 detector = "clnb_gom9"
@@ -28,6 +28,29 @@ all_wav<-as.data.frame(list.files(path))%>%
 
 start_deploy = min(all_wav$date)
 start_deploy
+
+end_deploy = max(all_wav$date)
+end_deploy
+
+year_spring<-year(end_deploy)
+
+#find spring forward date
+get_dst2 <- function(y = year_spring, tz = "America/New_York"){
+  start <- paste0(y, '-01-01')
+  end <- paste0(y, '-12-31')
+  d1 <- seq(
+    as.POSIXct(start, tz = tz),
+    as.POSIXct(end, tz =tz), 
+    by = "hour")
+  data.frame(
+    year = y,
+    spring_shift = range(d1[lubridate::dst(d1)])[1],
+    autumn_shift = range(d1[lubridate::dst(d1)])[2],
+    stringsAsFactors = FALSE)
+}
+
+get_dst2()$spring_shift
+
 
 #check if folder matches the ST ID in the file string
 identical(unique(all_wav$STID), ST_ID)
@@ -116,6 +139,8 @@ dawndusk<-dates%>%
 join_sun<-all_whales_Raven%>%
   left_join(dawndusk, by = "date")
 
+head(join_sun)
+tail(join_sun)
 # tod = time of day
 all_whales_Raven_sun<-join_sun%>%
   mutate(tod_bin = case_when(
@@ -126,6 +151,26 @@ all_whales_Raven_sun<-join_sun%>%
   dplyr::select(-date, -sunrise)
 
 head(all_whales_Raven_sun)
+tail(all_whales_Raven_sun)
+
+all_whales_Raven_sun%>%filter(start.time > ymd_hms("2026-03-08 02:50:01"))
+
+#while the data are not really in UTC, this code works without declaring the time zone, the UTC assignment to springshift is just to trick it
+
+if (force_tz(get_dst2()$spring_shift, "UTC") > start_deploy & force_tz(get_dst2()$spring_shift, "UTC") < end_deploy){
+  all_whales_Raven_sun <- all_whales_Raven_sun %>%
+    mutate(`Begin Time (s)` = case_when(
+      start.time > force_tz(get_dst2()$spring_shift, "UTC") ~ `Begin Time (s)` - 3600,
+      TRUE ~ `Begin Time (s)`
+    )) %>%
+    mutate(`End Time (s)` = case_when(
+      start.time > force_tz(get_dst2()$spring_shift, "UTC") ~ `End Time (s)` - 3600,
+      TRUE ~ `End Time (s)`
+    ))
+  print(TRUE)
+} else {
+  print(FALSE)
+}
 
 # write file ----
 # dawndusk for reference
