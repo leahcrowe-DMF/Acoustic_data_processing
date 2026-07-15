@@ -37,6 +37,8 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>%
          validation == "f" ~ "n", # fin whale?
         validation == "b" ~ "n", ## fixing Manali's typo
         validation == "hh" ~ "h", ## fixing Manali's typo
+        validation == "n?" ~ "n", ## fixing Manali's typo
+        validation == "n\\rh" ~ "r?", ## fixing Manali's typo
          TRUE ~ validation))%>%
   mutate(confidence = case_when(
     grepl("?",validation, fixed = TRUE) ~ "Possible",
@@ -55,7 +57,9 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>%
   mutate(date = as.Date(start.time),
          time = substr(start.time, 12, 20))
 
-analysis_data_df%>%filter(Site == "EOS10")%>%distinct(validation)
+analysis_data_df%>%filter(Site == "NSO14")%>%distinct(validation)
+analysis_data_df%>%filter(Site == "NSO14" & validation == "r?")
+analysis_data_df%>%filter(Site == "NSO14" & validation == "h")
 
 analysis_data_df%>%filter(validated_sp == "Minke whale")
 
@@ -65,7 +69,7 @@ analysis_data_df%>%filter(grepl('?',validation, fixed = TRUE))
 
 analysis_data_df%>%filter(grepl('h',validation, fixed = TRUE))%>%distinct(Site, date)
 
-analysis_data_df%>%filter(date == "2025-08-03" & validation == "h")
+analysis_data_df%>%filter(date == "2025-12-27" & validation == "r")
 
 analysis_data_df%>%filter(Site == "MBW05" & tod_bin == "")
 
@@ -88,7 +92,7 @@ analysis_data_df%>%filter(Site == "MBW04")%>%
 unique(analysis_data_df$validation)
 
 analysis_data_df%>%
-  filter(validation == "e?")
+  filter(validation == " h")
 
 analysis_data_df%>%filter(Site == "CCB06")%>%
   filter(validation == "b")
@@ -110,12 +114,12 @@ dolphins<-bind_rows(analysis_data_ls)%>%
          time = substr(start.time, 12, 20))
 unique(dolphins$dolphins)
 
-dolphins%>%filter(Site == "JEF03")%>%distinct(dolphins)
+dolphins%>%filter(Site == "JEF01")%>%distinct(dolphins)
 
 dolphins%>%filter(dolphins == "vessel")
 dolphins%>%filter(dolphins == "other calls")
 dolphins%>%filter(dolphins == "pinger")
-dolphins%>%filter(dolphins == "r")
+dolphins%>%filter(dolphins == "whoops")
 
 ggplot(dolphins)+
   geom_point(aes(x = date, y = Site, color = dolphins))+
@@ -175,7 +179,7 @@ detection_bin<-analysis_data_df%>%
   
 detection_bin%>%filter(con_count == 1 & confidence2 == "<3 calls")
 
-detection_bin%>%filter(date == "2025-08-03")
+detection_bin%>%filter(date > "2026-02-18")
 
 analysis_data_df%>%filter(Site == "BUZ17" & validated_sp == "Humpback whale")
 
@@ -195,11 +199,15 @@ detection_date<-analysis_data_df%>%
   mutate(con_count = 1:n())%>%
   filter(con_count == 1)
 
+write.csv(detection_date, paste0("./data/detection_date-", Sys.Date(), ".csv"), row.names = F)
+
 unique(detection_date$validated_sp)
 
 detection_date%>%filter(validated_sp == "")
 
-detection_date%>%filter(date == "2025-08-03")
+detection_date%>%filter(is.na(date))
+
+detection_date%>%filter(date > "2026-02-18")
 
 # species by Site
 
@@ -213,7 +221,7 @@ detection_date%>%filter(validated_sp == "")
 
 ### ----
 #Use the below to find days to doublecheck "r?" and look for any unclassified upcalls
-detection_date%>%filter(Site == "JEF03" & validated_sp == "Right whale" & confidence2 == "<3 calls")
+detection_date%>%filter(Site == "JEF01" & validated_sp == "Right whale" & confidence2 == "<3 calls")
 ###
 detection_date%>%filter(Site == "JEF02" & validated_sp == "Minke whale")
 
@@ -241,15 +249,16 @@ recording_dead_periods<-ST_recording%>%
 # right whale time of day----
 
 NARW_det<-detection_bin%>%filter(validated_sp == "Right whale")%>%filter(tod_bin != "")
-NARW_det$Site
-NARW_det$Site<-factor(NARW_det$Site, levels = c("BUZ17","NSO14","ACK16","GSC11","EOS10","EOS08","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
+write.csv(NARW_det, paste0("./data/NARW_det-", Sys.Date(), ".csv"), row.names = F)
+unique(NARW_det$Site)
+NARW_det$Site<-factor(NARW_det$Site, levels = c("BUZ17","NSO14","ACK16","GSC12","GSC11","EOS10","EOS09","EOS08","CCB19","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
 ggplot(NARW_det)+
-  geom_rect(aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07")))+
-  geom_rect(aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
+  geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-14"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07")))+
+  geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-10"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
   #geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-07"), y = "BUZ17", height = 0.25), fill = "black", alpha = 0.2)+
   #annotate("rect", xmin = ymd("2025-09-21"), xmax = ymd("2025-10-11"), y = "JEF03", height = 0.25, fill = "black", alpha = 0.2)+
-  geom_rect(aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
-  geom_rect(aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
+  geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-05-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
+  geom_rect(aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-05-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
   geom_rect(aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"), y = Site, height = 1), fill = "blue", alpha = 0.2, data = data.frame(Site =  c("MBW04","CCB06","CCB07","EOS08","EOS10")))+
   #geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = unique(NARW_det$Site)))+
   geom_point(aes(x = date, y = Site, color = confidence2))+
@@ -264,15 +273,18 @@ ggplot(NARW_det)+
 detection_bin$Site<-factor(detection_bin$Site, levels = c("BUZ17","NSO14","ACK16","GSC11","EOS10","EOS08","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
 
 NARW_det%>%filter(tod_bin == "")
+NARW_det%>%filter(is.na(Site))
+
+min(NARW_det$date)
 
 unique(NARW_det$tod_bin)
 
 ggplot(NARW_det)+
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-14"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07")))+
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-10"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-07"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Site = c("BUZ17")))+
+  geom_rect(mapping = aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-14"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07")))+
+  geom_rect(mapping = aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-10"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
+  geom_rect(mapping = aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-07"), ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2, data = data.frame(Site = c("BUZ17")))+
   geom_rect(recording_dead_periods, mapping = aes(xmin = min_dead, xmax = max_dead, ymin = "morning", ymax = "night"), fill = "black", alpha = 0.2)+
-  geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-05-01"), y = "Fishing closure", height = 0.5), fill = "red", alpha = 0.5, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
+  geom_rect(mapping = aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-05-01"), y = "Fishing closure", height = 0.5), fill = "red", alpha = 0.5, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
   geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-05-01"), y = "Fishing closure", height = 0.5), fill = "red", alpha = 0.5, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
   geom_rect(mapping = aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"),  y = "Fishing closure", height = 0.5), fill = "blue", alpha = 0.5, data = data.frame(Site =  c("MBW04","CCB06","CCB07","EOS08","EOS10")))+
   geom_point(mapping = aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2), alpha = 0.6)+
