@@ -49,7 +49,7 @@ noise_floor<-TOL%>%filter(TOL_16000 > TOL_500)%>%
          min_hour_ET = min(datetime_ET),
          max_hour_ET = max(datetime_ET))%>%
   distinct(min_hour_ET, max_hour_ET, num_hours)%>%
-  mutate(Comments = "")%>%
+  mutate(type = "", Comments = "")%>%
   filter(!is.na(date))
 
 write.csv(noise_floor, paste0(path,"/QAQC_Output/",site,"_",deployment_number,"-",ST_ID,"_noisefloor.csv"), row.names = F)
