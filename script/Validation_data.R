@@ -26,20 +26,21 @@ analysis_data_ls<-lapply(analysis_files_ls, function(x){
 str(analysis_data_ls$`MBW04_01-8929-all_LFDCS_Mah3-RavenST_MRC.txt`)
 str(analysis_data_ls$`ACK16_01-8852-all_LFDCS_Mah3-RavenST_LMC.txt`)
 head(analysis_data_ls$`EOS10_01-8850-all_LFDCS_Mah3-RavenST_MRC.txt`)
+head(analysis_data_ls$`CCB06_02-8858-all_LFDCS_Mah3-RavenST_JAF.txt`)
 
 analysis_data_ls$`MBW04_01-8929-all_LFDCS_Mah3-RavenST_MRC.txt`%>%filter(start.time == "")
 
-analysis_data_df<-bind_rows(analysis_data_ls)%>%
+analysis_data_df<-bind_rows(analysis_data_ls)%>% #need to check Manali's r with comments like "other"
   mutate(validation = case_when(
-        validation == "nn" ~ "n",
-         validation == "rh" ~ "r?",
-         validation == "rh?" ~ "r?",
-         validation == "f" ~ "n", # fin whale?
-        validation == "b" ~ "n", ## fixing Manali's typo
-        validation == "hh" ~ "h", ## fixing Manali's typo
-        validation == "n?" ~ "n", ## fixing Manali's typo
-        validation == "n\\rh" ~ "r?", ## fixing Manali's typo
-         TRUE ~ validation))%>%
+  #       validation == "nn" ~ "n",
+          validation == "rh" ~ "r?",
+          validation == "rh?" ~ "r?",
+  #        validation == "f" ~ "n", # fin whale?
+  #       validation == "b" ~ "n", ## fixing Manali's typo
+  #       validation == "hh" ~ "h", ## fixing Manali's typo
+         validation == "n?" ~ "n", ## fixing Manali's typo
+  #       validation == "n\\rh" ~ "r?", ## fixing Manali's typo
+          TRUE ~ validation))%>%
   mutate(confidence = case_when(
     grepl("?",validation, fixed = TRUE) ~ "Possible",
     validation == "n" ~ "False detection",
@@ -57,45 +58,35 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>%
   mutate(date = as.Date(start.time),
          time = substr(start.time, 12, 20))
 
-analysis_data_df%>%filter(Site == "NSO14")%>%distinct(validation)
-analysis_data_df%>%filter(Site == "NSO14" & validation == "r?")
-analysis_data_df%>%filter(Site == "NSO14" & validation == "h")
+analysis_data_df%>%#filter(Site == "TIL15")%>%
+  distinct(validation)
 
-analysis_data_df%>%filter(validated_sp == "Minke whale")
+#typos to fix
+analysis_data_df%>%filter(validation == "n?")%>%dplyr::select(Site, Analyst)
+analysis_data_df%>%filter(validation == "b")%>%dplyr::select(Site, Analyst)
+analysis_data_df%>%filter(validation == "hh")%>%dplyr::select(Site, Analyst)
+analysis_data_df%>%filter(validation == "nn")%>%dplyr::select(Site, Analyst)
+analysis_data_df%>%filter(validation == "n\\rh")%>%dplyr::select(Site, Analyst)
+analysis_data_df%>%filter(validation == "f")%>%dplyr::select(Site, Analyst)
 
-max(nchar(analysis_data_df$comments))
-
-analysis_data_df%>%filter(grepl('?',validation, fixed = TRUE))
+analysis_data_df%>%filter(Site == "CCB06" & validation == "r")
 
 analysis_data_df%>%filter(grepl('h',validation, fixed = TRUE))%>%distinct(Site, date)
 
 analysis_data_df%>%filter(date == "2025-12-27" & validation == "r")
 
-analysis_data_df%>%filter(Site == "MBW05" & tod_bin == "")
+#some to fix here
+analysis_data_df%>%filter(tod_bin == "")
 
 analysis_data_df%>%filter(Site == "MBW05" & 
                             ymd_hms(start.time) < ymd_hms("2025-06-01 00:00:02") & 
                             Call.type.translation == "Right whale" & validation == "")
 
-analysis_data_df%>%filter(Site == "CCB06")%>%
-  filter(Call.type.translation == "Humpback whale" & validation == "")%>%
-  filter(date < "2025-06-01")
 
-analysis_data_df%>%filter(Site == "JEF03")%>%
-  filter(validation == "r")
-
-# talk to Manali about this, classified right whales without validation
-# these probably manual validations that need validated_sp = r
-analysis_data_df%>%filter(Site == "MBW04")%>%
+# these may be manual validations that need validated_sp = r
+analysis_data_df%>%filter(Site == "TIL15")%>%
   filter(validation == "" & Call.type.translation == "Right whale")
 
-unique(analysis_data_df$validation)
-
-analysis_data_df%>%
-  filter(validation == " h")
-
-analysis_data_df%>%filter(Site == "CCB06")%>%
-  filter(validation == "b")
 
 # megapclicks ----
 megapclicks<-analysis_data_df%>%filter(grepl("megap",comments))
@@ -114,11 +105,10 @@ dolphins<-bind_rows(analysis_data_ls)%>%
          time = substr(start.time, 12, 20))
 unique(dolphins$dolphins)
 
-dolphins%>%filter(Site == "JEF01")%>%distinct(dolphins)
+dolphins%>%filter(Site == "TIL15")%>%distinct(dolphins)
 
 dolphins%>%filter(dolphins == "vessel")
 dolphins%>%filter(dolphins == "other calls")
-dolphins%>%filter(dolphins == "pinger")
 dolphins%>%filter(dolphins == "whoops")
 
 ggplot(dolphins)+
@@ -182,6 +172,7 @@ detection_bin%>%filter(con_count == 1 & confidence2 == "<3 calls")
 detection_bin%>%filter(date > "2026-02-18")
 
 analysis_data_df%>%filter(Site == "BUZ17" & validated_sp == "Humpback whale")
+analysis_data_df%>%filter(validated_sp == "Humpback whale")
 
 ### by date only ----
 
@@ -210,6 +201,7 @@ detection_date%>%filter(is.na(date))
 detection_date%>%filter(date > "2026-02-18")
 
 # species by Site
+unique(detection_date$validated_sp)
 
 ggplot(detection_date)+
   geom_point(aes(x = date, y = Site, color = confidence2))+
@@ -217,11 +209,9 @@ ggplot(detection_date)+
 
 detection_date%>%filter(Site == "JEF03" & validated_sp == "Right whale" & confidence2 == "<3 calls")
 
-detection_date%>%filter(validated_sp == "")
-
 ### ----
 #Use the below to find days to doublecheck "r?" and look for any unclassified upcalls
-detection_date%>%filter(Site == "JEF01" & validated_sp == "Right whale" & confidence2 == "<3 calls")
+detection_date%>%filter(Site == "CCB06" & validated_sp == "Right whale" & confidence2 == "<3 calls")
 ###
 detection_date%>%filter(Site == "JEF02" & validated_sp == "Minke whale")
 
@@ -246,13 +236,19 @@ recording_dead_periods<-ST_recording%>%
   
 
 
-# right whale time of day----
+# right whale by site and date ----
 
 NARW_det<-detection_bin%>%filter(validated_sp == "Right whale")%>%filter(tod_bin != "")
-write.csv(NARW_det, paste0("./data/NARW_det-", Sys.Date(), ".csv"), row.names = F)
-unique(NARW_det$Site)
-NARW_det$Site<-factor(NARW_det$Site, levels = c("BUZ17","NSO14","ACK16","GSC12","GSC11","EOS10","EOS09","EOS08","CCB19","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
-ggplot(NARW_det)+
+
+
+NARW_det_day<-NARW_det%>%group_by(Site, date)%>%
+  mutate(confidence2_n = n())%>%distinct(Site, date, validated_sp, confidence2, confidence2_n)%>%filter(!(confidence2_n > 1 & confidence2 == "<3 calls"))
+
+NARW_det_day%>%filter(Site == "CCB06" & date == "2026-02-23")
+write.csv(NARW_det_day, paste0("./data/NARW_det-", Sys.Date(), ".csv"), row.names = F)
+unique(NARW_det_day$Site)
+NARW_det_day$Site<-factor(NARW_det_day$Site, levels = c("BUZ17","NSO14","ACK16","GSC12","GSC11","EOS10","EOS09","EOS08","CCB19","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
+ggplot(NARW_det_day)+
   geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-14"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07")))+
   geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-10"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
   #geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-07"), y = "BUZ17", height = 0.25), fill = "black", alpha = 0.2)+
