@@ -3,13 +3,13 @@ library(dplyr);library(lubridate);library(suncalc)
 # manual params ----
 
 drivepath = "P:/" 
-site = "CCB19"
-deployment_number = "01"
-ST_ID = "8856"
+site = "MBW04"
+deployment_number = "02"
+ST_ID = "8859"
 
 ## position of deployment ---- 
-lat = 41.88209865
-lon = -70.26950737
+lat = 42.38448388
+lon = -70.77339814
 
 ## detector choice ----
 detector = "clnb_gom9"
@@ -33,9 +33,10 @@ end_deploy = max(all_wav$date)
 end_deploy
 
 year_spring<-year(end_deploy)
+year_autumn<-year(start_deploy)
 
 #find spring forward date
-get_dst2 <- function(y = year_spring, tz = "America/New_York"){
+get_dst_spr <- function(y = year_spring, tz = "America/New_York"){
   start <- paste0(y, '-01-01')
   end <- paste0(y, '-12-31')
   d1 <- seq(
@@ -45,14 +46,28 @@ get_dst2 <- function(y = year_spring, tz = "America/New_York"){
   data.frame(
     year = y,
     spring_shift = range(d1[lubridate::dst(d1)])[1],
+    stringsAsFactors = FALSE)
+}
+
+get_dst_aut <- function(y = year_autumn, tz = "America/New_York"){
+  start <- paste0(y, '-01-01')
+  end <- paste0(y, '-12-31')
+  d1 <- seq(
+    as.POSIXct(start, tz = tz),
+    as.POSIXct(end, tz =tz), 
+    by = "hour")
+  data.frame(
+    year = y,
     autumn_shift = range(d1[lubridate::dst(d1)])[2],
     stringsAsFactors = FALSE)
 }
 
-get_dst2()$spring_shift
+get_dst_spr()$spring_shift
+get_dst_aut()$autumn_shift
 
 
 #check if folder matches the ST ID in the file string
+# if it says FALSE, probably because of time change so check unique(all_wave$STD)
 identical(unique(all_wav$STID), ST_ID)
 
 ## LFDCS output as csv ----
@@ -121,6 +136,43 @@ nrow(all_whales_Raven)
 nrow(all_whales_Raven)/nrow(all_lines_Raven) 
 
 head(all_whales_Raven)
+tail(all_whales_Raven)
+
+## adjust for local time from LFDCS output which assumes UTC
+# while the data are not really in UTC, this code works without declaring the time zone, the UTC assignment to spring/autumn_shift is just to trick it
+
+# spring forward, need to adjust beg and end time for signal box
+if (force_tz(get_dst_spr()$spring_shift, "UTC") > start_deploy & force_tz(get_dst_spr()$spring_shift, "UTC") < end_deploy){
+  all_whales_Raven <- all_whales_Raven %>%
+    mutate(`Begin Time (s)` = case_when(
+      start.time > force_tz(get_dst_spr()$spring_shift, "UTC") ~ `Begin Time (s)` - 3600,
+      TRUE ~ `Begin Time (s)`
+    )) %>%
+    mutate(`End Time (s)` = case_when(
+      start.time > force_tz(get_dst_spr()$spring_shift, "UTC") ~ `End Time (s)` - 3600,
+      TRUE ~ `End Time (s)`
+    ))
+  print(TRUE)
+} else {
+  print(FALSE)
+}
+
+# fall back, need to adjust to local time in selection table for repeated hour
+if (force_tz(get_dst_aut()$autumn_shift, "UTC") > start_deploy & force_tz(get_dst_aut()$autumn_shift, "UTC") < end_deploy){
+  all_whales_Raven <- all_whales_Raven %>%
+    mutate(
+      start.time = case_when(
+        start.time > force_tz(get_dst_aut()$autumn_shift, "UTC") & start.time < force_tz(get_dst_spr()$spring_shift, "UTC") ~ start.time - 3600,
+      TRUE ~ start.time
+    ))
+  print(TRUE)
+} else {
+  print(FALSE)
+}
+head(all_whales_Raven)
+tail(all_whales_Raven)
+
+## tod_bins
 
 dates<-data.frame(date = seq(from = as.Date(start_deploy), to = as.Date(max(all_whales_Raven$start.time)), by = "day"))
 
@@ -155,22 +207,6 @@ tail(all_whales_Raven_sun)
 
 all_whales_Raven_sun%>%filter(start.time > ymd_hms("2026-03-08 02:50:01"))
 
-#while the data are not really in UTC, this code works without declaring the time zone, the UTC assignment to springshift is just to trick it
-
-if (force_tz(get_dst2()$spring_shift, "UTC") > start_deploy & force_tz(get_dst2()$spring_shift, "UTC") < end_deploy){
-  all_whales_Raven_sun <- all_whales_Raven_sun %>%
-    mutate(`Begin Time (s)` = case_when(
-      start.time > force_tz(get_dst2()$spring_shift, "UTC") ~ `Begin Time (s)` - 3600,
-      TRUE ~ `Begin Time (s)`
-    )) %>%
-    mutate(`End Time (s)` = case_when(
-      start.time > force_tz(get_dst2()$spring_shift, "UTC") ~ `End Time (s)` - 3600,
-      TRUE ~ `End Time (s)`
-    ))
-  print(TRUE)
-} else {
-  print(FALSE)
-}
 
 # write file ----
 # dawndusk for reference
