@@ -1,7 +1,9 @@
-library(arcgis);library(arcgisbinding);
+library(arcgis);
 library(arcgisutils);library(dplyr);library(lubridate);
 library(stringr);library(geosphere);library(sf);library(tidyr)
 
+#install.packages("arcgisbinding", repos = "https://r.esri.com", type = "win.binary")
+library(arcgisbinding)
 
 ## check there is ArcGIS on this machine ----
 arc.check_product()
