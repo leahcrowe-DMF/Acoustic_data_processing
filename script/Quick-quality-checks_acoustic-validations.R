@@ -24,6 +24,11 @@ analysis_data_ls<-lapply(analysis_files_ls, function(x){
 )
 
 analysis_data_df<-bind_rows(analysis_data_ls)%>% #compresses the list of selection table dataframes
+  mutate(validation = case_when(
+    validation == "rh" ~ "r?",
+    validation == "rh?" ~ "r?",
+    validation == "n?" ~ "n", 
+    TRUE ~ validation))%>%
   mutate(confidence = case_when(
     grepl("?",validation, fixed = TRUE) ~ "Possible",
     validation == "n" ~ "False detection",
@@ -79,13 +84,17 @@ detection_date%>%
   filter(validated_sp == "Right whale" & confidence2 == "<3 calls")
 
 ## check on specific site ----
-
 detection_date%>%
   filter(Site == "EOS10")%>% #change the site text
   filter(validated_sp == "Right whale" & confidence2 == "<3 calls")%>%
   #filter(date > ymd("2025-03-01"))%>%
   as.data.frame()
-# 3. Check on right whale detections that were skipped
+
+### find specific calls from specific days ----
+analysis_data_df%>%filter(Site == "EOS10" & date == "2025-08-10" & validation == "r?")
+
+
+# 3. Check on right whale detections that were skipped ----
 
 analysis_data_df%>%
   filter(Call.type.translation == "Right whale" & validation == "")
