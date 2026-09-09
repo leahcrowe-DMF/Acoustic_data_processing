@@ -51,16 +51,17 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>% #compresses the list of selecti
 ## validation column ----
 unique(analysis_data_df$validation)
 ### specific site ----
-analysis_data_df%>%filter(Site == "EOS10")%>%distinct(validation)
+analysis_data_df%>%filter(Site == "CCB07")%>%distinct(validation)
 ### specific validation value ----
-analysis_data_df%>%filter(validation == "rh?")%>%dplyr::select(Site, Selection, start.time)
+analysis_data_df%>%filter(validation == "f?")%>%dplyr::select(Site, Selection, start.time)
 
 ## dolphins column ----
 unique(analysis_data_df$dolphins)
 ### specific site ----
-analysis_data_df%>%filter(Site == "EOS10")%>%distinct(dolphins)
+analysis_data_df%>%filter(Site == "CCB07")%>%distinct(dolphins)
 ### specific validation value ----
 analysis_data_df%>%filter(dolphins == "")%>%dplyr::select(Site, Selection, start.time)
+analysis_data_df%>%filter(is.na(dolphins))%>%dplyr::select(Site, Selection, start.time)
 
 # 2. Check when definite right whale detections are < 3 calls in one day ----
 
@@ -85,9 +86,9 @@ detection_date%>%
 
 ## check on specific site ----
 detection_date%>%
-  filter(Site == "EOS10")%>% #change the site text
+  filter(Site == "CCB07")%>% #change the site text
   filter(validated_sp == "Right whale" & confidence2 == "<3 calls")%>%
-  #filter(date > ymd("2025-03-01"))%>%
+  filter(date > ymd("2025-09-01"))%>%
   as.data.frame()
 
 ### find specific calls from specific days ----
@@ -97,4 +98,4 @@ analysis_data_df%>%filter(Site == "EOS10" & date == "2025-08-10" & validation ==
 # 3. Check on right whale detections that were skipped ----
 
 analysis_data_df%>%
-  filter(Call.type.translation == "Right whale" & validation == "")
+  filter(Call.type.translation == "Right whale" & validation == "" & Site == "CCB07")
