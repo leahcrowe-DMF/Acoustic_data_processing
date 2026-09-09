@@ -58,22 +58,25 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>% #need to check Manali's r with 
   mutate(date = as.Date(start.time),
          time = substr(start.time, 12, 20))
 
-analysis_data_df%>%#filter(Site == "TIL15")%>%
+analysis_data_df%>%#filter(Site == "GSC12")%>%
   distinct(validation)
 
 #typos to fix
-analysis_data_df%>%filter(validation == "n?")%>%dplyr::select(Site, Analyst)
-analysis_data_df%>%filter(validation == "b")%>%dplyr::select(Site, Analyst)
-analysis_data_df%>%filter(validation == "hh")%>%dplyr::select(Site, Analyst)
-analysis_data_df%>%filter(validation == "nn")%>%dplyr::select(Site, Analyst)
-analysis_data_df%>%filter(validation == "n\\rh")%>%dplyr::select(Site, Analyst)
-analysis_data_df%>%filter(validation == "f")%>%dplyr::select(Site, Analyst)
+#analysis_data_df%>%filter(validation == "n?")%>%dplyr::select(Site, Analyst)
+#analysis_data_df%>%filter(validation == "b")%>%dplyr::select(Site, Analyst)
+#analysis_data_df%>%filter(validation == "hh")%>%dplyr::select(Site, Analyst)
+#analysis_data_df%>%filter(validation == "nn")%>%dplyr::select(Site, Analyst)
+#analysis_data_df%>%filter(validation == "n\\rh")%>%dplyr::select(Site, Analyst)
+#analysis_data_df%>%filter(validation == "f")%>%dplyr::select(Site, Analyst)
+#analysis_data_df%>%filter(validation == "n ")%>%dplyr::select(Site, Analyst)
 
-analysis_data_df%>%filter(Site == "CCB06" & validation == "r")
+analysis_data_df%>%filter(validation == "f?")
+
+analysis_data_df%>%filter((Site == "CCB07" | Site == "CCB06") & validation == "r")%>%distinct(date)%>%arrange(date)
 
 analysis_data_df%>%filter(grepl('h',validation, fixed = TRUE))%>%distinct(Site, date)
 
-analysis_data_df%>%filter(date == "2025-12-27" & validation == "r")
+analysis_data_df%>%filter(date == "2025-11-27" & validation == "r")%>%distinct(Site)
 
 #some to fix here
 analysis_data_df%>%filter(tod_bin == "")
@@ -90,6 +93,13 @@ analysis_data_df%>%filter(Site == "TIL15")%>%
 
 # megapclicks ----
 megapclicks<-analysis_data_df%>%filter(grepl("megap",comments))
+megapclicks%>%filter(Site == "EOS10")
+
+
+ggplot(megapclicks%>%filter(Site != "EOS10"))+
+  geom_point(aes(x = date, y = Site))+
+  ggtitle("Detection of megapclicks")
+
 unique(megapclicks$Site)
 # Mn song -----
 Mnsong<-analysis_data_df%>%filter(grepl("song",comments) & validated_sp == "Humpback whale" & confidence == "Definite")
@@ -105,11 +115,11 @@ dolphins<-bind_rows(analysis_data_ls)%>%
          time = substr(start.time, 12, 20))
 unique(dolphins$dolphins)
 
-dolphins%>%filter(Site == "TIL15")%>%distinct(dolphins)
+dolphins%>%filter(Site == "MBW04")%>%distinct(dolphins)
 
-dolphins%>%filter(dolphins == "vessel")
-dolphins%>%filter(dolphins == "other calls")
-dolphins%>%filter(dolphins == "whoops")
+dolphins%>%filter(dolphins == "fin?")
+dolphins%>%filter(dolphins == "flat harmonics")
+dolphins%>%filter(dolphins == "r")
 
 ggplot(dolphins)+
   geom_point(aes(x = date, y = Site, color = dolphins))+
@@ -207,11 +217,13 @@ ggplot(detection_date)+
   geom_point(aes(x = date, y = Site, color = confidence2))+
   facet_wrap(~validated_sp, ncol = 1)
 
-detection_date%>%filter(Site == "JEF03" & validated_sp == "Right whale" & confidence2 == "<3 calls")
+detection_date%>%
+  filter(Site == "MBW04" & validated_sp == "Right whale" & confidence2 == "<3 calls")%>%
+  dplyr::select(-con_count)
 
 ### ----
 #Use the below to find days to doublecheck "r?" and look for any unclassified upcalls
-detection_date%>%filter(Site == "CCB06" & validated_sp == "Right whale" & confidence2 == "<3 calls")
+detection_date%>%filter(Site == "CCB07" & validated_sp == "Right whale" & confidence2 == "<3 calls")
 ###
 detection_date%>%filter(Site == "JEF02" & validated_sp == "Minke whale")
 
@@ -244,7 +256,7 @@ NARW_det<-detection_bin%>%filter(validated_sp == "Right whale")%>%filter(tod_bin
 NARW_det_day<-NARW_det%>%group_by(Site, date)%>%
   mutate(confidence2_n = n())%>%distinct(Site, date, validated_sp, confidence2, confidence2_n)%>%filter(!(confidence2_n > 1 & confidence2 == "<3 calls"))
 
-NARW_det_day%>%filter(Site == "CCB06" & date == "2026-02-23")
+NARW_det_day%>%filter(Site == "ACK16" & date == "2026-08-17")
 write.csv(NARW_det_day, paste0("./data/NARW_det-", Sys.Date(), ".csv"), row.names = F)
 unique(NARW_det_day$Site)
 NARW_det_day$Site<-factor(NARW_det_day$Site, levels = c("BUZ17","NSO14","ACK16","GSC12","GSC11","EOS10","EOS09","EOS08","CCB19","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
@@ -266,6 +278,27 @@ ggplot(NARW_det_day)+
   theme(legend.position = "bottom",
         legend.title = element_blank())
 
+
+## Just Jeffreys + Tillies
+
+ggplot(NARW_det_day%>%filter(Site %in% c("JEF01","JEF02","JEF03","TIL15")))+
+  geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-10"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
+  geom_rect(mapping = aes(xmin = ymd("2025-04-10"), xmax = ymd("2025-09-21"), y = "JEF01", height = 0.25), fill = "red")+
+  geom_rect(mapping = aes(xmin = ymd("2025-10-11"), xmax = ymd("2026-02-16"), y = Site, height = 0.25), fill = "red", data = data.frame(Site = c("JEF02","JEF03")))+
+  geom_rect(mapping = aes(xmin = ymd("2025-09-21"), xmax = ymd("2025-10-11"), y = c("JEF03"), height = 0.25), fill = "grey", alpha = 0.2)+
+  geom_rect(mapping = aes(xmin = ymd("2025-10-05"), xmax = ymd("2025-10-11"), y = c("JEF02"), height = 0.25), fill = "grey", alpha = 0.2)+
+  geom_point(aes(x = date, y = Site, color = confidence2))+
+  facet_wrap(~validated_sp, ncol = 1)+
+  scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+
+  scale_color_viridis_d(end = 0, begin = 0.8)+
+  theme_bw()+
+  theme(legend.position = "bottom",
+        legend.title = element_blank())
+
+##
+
+
+
 detection_bin$Site<-factor(detection_bin$Site, levels = c("BUZ17","NSO14","ACK16","GSC11","EOS10","EOS08","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
 
 NARW_det%>%filter(tod_bin == "")
@@ -284,7 +317,7 @@ ggplot(NARW_det)+
   geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-05-01"), y = "Fishing closure", height = 0.5), fill = "red", alpha = 0.5, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
   geom_rect(mapping = aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"),  y = "Fishing closure", height = 0.5), fill = "blue", alpha = 0.5, data = data.frame(Site =  c("MBW04","CCB06","CCB07","EOS08","EOS10")))+
   geom_point(mapping = aes(x = date, y = factor(tod_bin, levels = c("morning","day","night")), color = confidence2), alpha = 0.6)+
-  facet_wrap(~Site, ncol = 1)+
+  facet_wrap(~Site, ncol = 2)+
   scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+
   scale_color_viridis_d(end = 0, begin = 0.8)+
   theme_bw()+
