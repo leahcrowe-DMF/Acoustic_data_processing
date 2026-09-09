@@ -1,20 +1,24 @@
 library(dplyr);library(lubridate);library(suncalc)
- 
+
 # manual params ----
 
 drivepath = "P:/" 
-site = "MBW04"
+site = "CCB07"
 deployment_number = "02"
-ST_ID = "8859"
+ST_ID = "8852"
+
+# choose one of the below for the timezone the ST files were offloaded in
+#ST_TZ = "UTC"
+ST_TZ = "America/New_York"
 
 ## position of deployment ---- 
-lat = 42.38448388
-lon = -70.77339814
+lat = 42.05311356
+lon = -70.31334876
 
 ## detector choice ----
 detector = "clnb_gom9"
 #detector = "clnb_gomlf_blue"
- 
+
 ## deployment start ----
 
 path<-paste0(drivepath,'/',site,'/',site,'_',deployment_number,'/',ST_ID)
@@ -26,81 +30,61 @@ all_wav<-as.data.frame(list.files(path))%>%
   mutate(date = ymd_hms(basefilename),
          STID = substr(filename, 1, nchar(filename) - 17))
 
-start_deploy = min(all_wav$date)
-start_deploy
-
-end_deploy = max(all_wav$date)
-end_deploy
-
-year_spring<-year(end_deploy)
-year_autumn<-year(start_deploy)
-
-#find spring forward date
-get_dst_spr <- function(y = year_spring, tz = "America/New_York"){
-  start <- paste0(y, '-01-01')
-  end <- paste0(y, '-12-31')
-  d1 <- seq(
-    as.POSIXct(start, tz = tz),
-    as.POSIXct(end, tz =tz), 
-    by = "hour")
-  data.frame(
-    year = y,
-    spring_shift = range(d1[lubridate::dst(d1)])[1],
-    stringsAsFactors = FALSE)
-}
-
-get_dst_aut <- function(y = year_autumn, tz = "America/New_York"){
-  start <- paste0(y, '-01-01')
-  end <- paste0(y, '-12-31')
-  d1 <- seq(
-    as.POSIXct(start, tz = tz),
-    as.POSIXct(end, tz =tz), 
-    by = "hour")
-  data.frame(
-    year = y,
-    autumn_shift = range(d1[lubridate::dst(d1)])[2],
-    stringsAsFactors = FALSE)
-}
-
-get_dst_spr()$spring_shift
-get_dst_aut()$autumn_shift
-
-
 #check if folder matches the ST ID in the file string
 # if it says FALSE, probably because of time change so check unique(all_wave$STD)
 identical(unique(all_wav$STID), ST_ID)
 
+### start and end of deployment ----
+# date/time of files that include the deployment and recovery (or is the earliest/latest file in the folder) 
+start_deploy = force_tz(min(all_wav$date), tz = ST_TZ)
+start_deploy
+start_deploy_tz<-format(start_deploy, format = "%Z")
+start_deploy_tz
+
+end_deploy = force_tz(max(all_wav$date), tz = ST_TZ)
+end_deploy
+end_deploy_tz<-format(end_deploy, format = "%Z")
+end_deploy_tz
+
 ## LFDCS output as csv ----
 filename = paste0(site,"_",deployment_number,"-",ST_ID,"-all_LFDCS_Mah3")
- 
+
 # read in LFDCS detections ----
 all_lines<-read.delim(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")
+head(all_lines)
+tail(all_lines)
+all_lines$start.time<-force_tz(mdy_hms(all_lines$start.time), tz = ST_TZ)
 
-#filter out anything before data recording start
-all_lines<-all_lines%>%filter(mdy_hms(start.time) > start_deploy)
+## filter out anything before earliest wavefile in folder ----
+all_lines<-all_lines%>%filter(start.time > start_deploy & start.time < end_deploy)
 
 head(all_lines)
+tail(all_lines)
 nrow(all_lines)
 unique(all_lines$Call.type)
-all_lines%>%filter(Call.type == -1)
- 
-# wrangle into a selection table for Raven ----
- 
+all_lines%>%filter(Call.type == -1)%>%nrow()
+
+## wrangle into a selection table for Raven ----
+
 all_lines_Raven<-all_lines%>%
   mutate(Selection = 1: n(),
          View = "Spectrogram 1",
-         Channel = 1,
-         start.time = mdy_hms(start.time))%>%
+         Channel = 1)%>%
   mutate(start_deploy = start_deploy)%>%
-  mutate(`Begin Time (s)` = as.numeric(start.time - start_deploy, units="secs") + start.fractional.second,
+  mutate(
+    start.time_UTC = with_tz(start.time, tz = "UTC"),
+    start.time_ET = with_tz(start.time_UTC, tz = "America/New_York"), # start.time_ET should be the same as start.time
+    time_zone_ET = format(start.time_ET, format = "%Z"))%>%
+  mutate(`Begin Time (s)` = as.numeric(start.time_ET - start_deploy, units="secs") + start.fractional.second,
          `End Time (s)` = as.numeric(`Begin Time (s)` + Duration, units="secs"))%>%
   dplyr::rename(
     `Low Freq (Hz)` = Min.freq,
     `High Freq (Hz)` = Max.freq)%>%
   dplyr::select(Selection, View, Channel, Call.type, start.time, start_deploy, `Begin Time (s)`, `End Time (s)`, everything())
- 
+
 head(all_lines_Raven)
- 
+tail(all_lines_Raven)
+
 if(detector == "clnb_gom9"){  
   all_lines_Raven<-all_lines_Raven%>%
     mutate(Call.type.translation = case_when(
@@ -120,8 +104,8 @@ if(detector == "clnb_gom9"){
       Call.type >= 2 & Call.type <= 4 ~ "Blue whale"
     ))
 }
- 
-all_lines_Raven
+
+#all_lines_Raven
 nrow(all_lines_Raven)
 unique(all_lines_Raven$Call.type.translation)
 
@@ -138,41 +122,8 @@ nrow(all_whales_Raven)/nrow(all_lines_Raven)
 head(all_whales_Raven)
 tail(all_whales_Raven)
 
-## adjust for local time from LFDCS output which assumes UTC
-# while the data are not really in UTC, this code works without declaring the time zone, the UTC assignment to spring/autumn_shift is just to trick it
-
-# spring forward, need to adjust beg and end time for signal box
-if (force_tz(get_dst_spr()$spring_shift, "UTC") > start_deploy & force_tz(get_dst_spr()$spring_shift, "UTC") < end_deploy){
-  all_whales_Raven <- all_whales_Raven %>%
-    mutate(`Begin Time (s)` = case_when(
-      start.time > force_tz(get_dst_spr()$spring_shift, "UTC") ~ `Begin Time (s)` - 3600,
-      TRUE ~ `Begin Time (s)`
-    )) %>%
-    mutate(`End Time (s)` = case_when(
-      start.time > force_tz(get_dst_spr()$spring_shift, "UTC") ~ `End Time (s)` - 3600,
-      TRUE ~ `End Time (s)`
-    ))
-  print(TRUE)
-} else {
-  print(FALSE)
-}
-
-# fall back, need to adjust to local time in selection table for repeated hour
-if (force_tz(get_dst_aut()$autumn_shift, "UTC") > start_deploy & force_tz(get_dst_aut()$autumn_shift, "UTC") < end_deploy){
-  all_whales_Raven <- all_whales_Raven %>%
-    mutate(
-      start.time = case_when(
-        start.time > force_tz(get_dst_aut()$autumn_shift, "UTC") & start.time < force_tz(get_dst_spr()$spring_shift, "UTC") ~ start.time - 3600,
-      TRUE ~ start.time
-    ))
-  print(TRUE)
-} else {
-  print(FALSE)
-}
-head(all_whales_Raven)
-tail(all_whales_Raven)
-
-## tod_bins
+### tod_bins ----
+#tod = time of day, choices = morning, day, night
 
 dates<-data.frame(date = seq(from = as.Date(start_deploy), to = as.Date(max(all_whales_Raven$start.time)), by = "day"))
 
@@ -188,25 +139,30 @@ Sys.timezone()
 dawndusk<-dates%>%
   mutate(sunrise = getSunlightTimes(date = date, lat = lat, lon = lon, keep = c("dawn","dusk"), tz = "America/New_York"))
 
+format(dawndusk$sunrise, format = "%Z")
+
 join_sun<-all_whales_Raven%>%
   left_join(dawndusk, by = "date")
 
+format(join_sun$sunrise$dawn, format = "%Z")
+format(join_sun$sunrise$dusk, format = "%Z")
+
 head(join_sun)
 tail(join_sun)
-# tod = time of day
+
+format(join_sun$start.time_ET, format = "%Z")
+
+# 
 all_whales_Raven_sun<-join_sun%>%
   mutate(tod_bin = case_when(
-    ymd_hms(start.time) <= ymd_hms(sunrise$dawn) ~ "morning",
-    ymd_hms(start.time) >= ymd_hms(sunrise$dusk) ~ "night",
-    ymd_hms(start.time) > ymd_hms(sunrise$dawn) & ymd_hms(start.time) > ymd_hms(sunrise$dawn) ~ "day"
+    start.time_ET <= sunrise$dawn ~ "morning",
+    start.time_ET >= sunrise$dusk ~ "night",
+    start.time_ET > sunrise$dawn & start.time_ET > sunrise$dawn ~ "day"
   ))%>%
   dplyr::select(-date, -sunrise)
 
 head(all_whales_Raven_sun)
 tail(all_whales_Raven_sun)
-
-all_whales_Raven_sun%>%filter(start.time > ymd_hms("2026-03-08 02:50:01"))
-
 
 # write file ----
 # dawndusk for reference
