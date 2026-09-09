@@ -50,13 +50,35 @@ end_deploy_tz
 filename = paste0(site,"_",deployment_number,"-",ST_ID,"-all_LFDCS_Mah3")
 
 # read in LFDCS detections ----
-all_lines<-read.delim(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")
+all_lines<-read.delim(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")%>%  
+  mutate(Selection = 1: n(),
+         View = "Spectrogram 1",
+         Channel = 1)
 head(all_lines)
 tail(all_lines)
-all_lines$start.time<-force_tz(mdy_hms(all_lines$start.time), tz = ST_TZ)
+
+if (start_deploy_tz == "EDT" & end_deploy_tz == "EST" & ST_TZ == "America/New_York"){
+  
+  all_lines$start.time<-force_tz(mdy_hms(all_lines$start.time), tz = "UTC") # not actually UTC, but need to allow all detections to stay from LFDCS
+  head(all_lines$start.time)
+  
+  all_lines<-all_lines%>%
+    mutate(start.time2 = start.time)%>% # keep original for reference
+    mutate(start.time = start.time + 3600*4)%>% # manually force to ET (minus 1 hr) and then subtract 4 hours
+    # filter(start.time >= "2025-11-02 02:57:00")%>%
+    # head()%>%
+    dplyr::select(-start.time2)
+  
+  ST_TZ = "UTC"
+  print(ST_TZ)
+} else {
+  all_lines$start.time<-force_tz(mdy_hms(all_lines$start.time), tz = ST_TZ)
+}
 
 ## filter out anything before earliest wavefile in folder ----
 all_lines<-all_lines%>%filter(start.time > start_deploy & start.time < end_deploy)
+
+with_tz(all_lines$start.time, tz = "America/New_York")
 
 head(all_lines)
 tail(all_lines)
@@ -67,9 +89,6 @@ all_lines%>%filter(Call.type == -1)%>%nrow()
 ## wrangle into a selection table for Raven ----
 
 all_lines_Raven<-all_lines%>%
-  mutate(Selection = 1: n(),
-         View = "Spectrogram 1",
-         Channel = 1)%>%
   mutate(start_deploy = start_deploy)%>%
   mutate(
     start.time_UTC = with_tz(start.time, tz = "UTC"),
