@@ -2,18 +2,18 @@ library(dplyr);library(lubridate);library(suncalc)
 
 # manual params ----
 
-drivepath = "P:/" 
-site = "CCB07"
-deployment_number = "02"
-ST_ID = "8852"
+drivepath = "E:/" 
+site = "GSC11"
+deployment_number = "01"
+ST_ID = "8827"
 
 # choose one of the below for the timezone the ST files were offloaded in
 #ST_TZ = "UTC"
 ST_TZ = "America/New_York"
 
 ## position of deployment ---- 
-lat = 42.05311356
-lon = -70.31334876
+lat = 41.45159599
+lon = -69.65305605
 
 ## detector choice ----
 detector = "clnb_gom9"
@@ -22,6 +22,8 @@ detector = "clnb_gom9"
 ## deployment start ----
 
 path<-paste0(drivepath,'/',site,'/',site,'_',deployment_number,'/',ST_ID)
+# local drive
+#path<-paste0(drivepath,'/',site,'_',deployment_number)
 path
 
 all_wav<-as.data.frame(list.files(path))%>%
@@ -51,6 +53,7 @@ filename = paste0(site,"_",deployment_number,"-",ST_ID,"-all_LFDCS_Mah3")
 
 # read in LFDCS detections ----
 all_lines<-read.delim(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")%>%  
+#all_lines<-read.delim(paste0(drivepath,site,"_",deployment_number,"/",filename,".csv"), skip = 14, header = T, sep = ",")%>%    # local drive
   mutate(Selection = 1: n(),
          View = "Spectrogram 1",
          Channel = 1)
@@ -65,20 +68,17 @@ if (start_deploy_tz == "EDT" & end_deploy_tz == "EST" & ST_TZ == "America/New_Yo
   all_lines<-all_lines%>%
     mutate(start.time2 = start.time)%>% # keep original for reference
     mutate(start.time = start.time + 3600*4)%>% # manually force to ET (minus 1 hr) and then subtract 4 hours
-    # filter(start.time >= "2025-11-02 02:57:00")%>%
-    # head()%>%
     dplyr::select(-start.time2)
   
   ST_TZ = "UTC"
   print(ST_TZ)
 } else {
   all_lines$start.time<-force_tz(mdy_hms(all_lines$start.time), tz = ST_TZ)
+  print(ST_TZ)
 }
 
 ## filter out anything before earliest wavefile in folder ----
 all_lines<-all_lines%>%filter(start.time > start_deploy & start.time < end_deploy)
-
-with_tz(all_lines$start.time, tz = "America/New_York")
 
 head(all_lines)
 tail(all_lines)
@@ -133,13 +133,15 @@ all_whales_Raven<-all_lines_Raven%>%
   mutate(validation = "",
          dolphins = "",
          comments = "",
-         date = as.Date(start.time))
+         date = as.Date(start.time_ET, tz = "America/New_York"))
 nrow(all_whales_Raven)
 
 nrow(all_whales_Raven)/nrow(all_lines_Raven) 
 
 head(all_whales_Raven)
 tail(all_whales_Raven)
+
+all_whales_Raven%>%filter(date == "2025-08-25")
 
 ### tod_bins ----
 #tod = time of day, choices = morning, day, night
@@ -163,33 +165,44 @@ format(dawndusk$sunrise, format = "%Z")
 join_sun<-all_whales_Raven%>%
   left_join(dawndusk, by = "date")
 
+# all the below timezones should be the same
 format(join_sun$sunrise$dawn, format = "%Z")
 format(join_sun$sunrise$dusk, format = "%Z")
+format(join_sun$start.time_ET, format = "%Z")
 
 head(join_sun)
 tail(join_sun)
-
-format(join_sun$start.time_ET, format = "%Z")
 
 # 
 all_whales_Raven_sun<-join_sun%>%
   mutate(tod_bin = case_when(
     start.time_ET <= sunrise$dawn ~ "morning",
     start.time_ET >= sunrise$dusk ~ "night",
-    start.time_ET > sunrise$dawn & start.time_ET > sunrise$dawn ~ "day"
+    start.time_ET > sunrise$dawn & start.time_ET < sunrise$dusk ~ "day"
   ))%>%
   dplyr::select(-date, -sunrise)
 
 head(all_whales_Raven_sun)
 tail(all_whales_Raven_sun)
+names(all_whales_Raven_sun)
+
 
 # write file ----
-# dawndusk for reference
+## dawndusk for reference ----
 write.table(dawndusk, paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,"-dawndusk.txt"), sep = '\t',
             row.names = F, col.names = T, quote = F)
-# selection table for Raven 
+
+### local drive
+# write.table(dawndusk, paste0(drivepath,site,"_",deployment_number,"/",filename,"-dawndusk.txt"), sep = '\t',
+#            row.names = F, col.names = T, quote = F)
+
+## selection table for Raven ----
 write.table(all_whales_Raven_sun, paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,"-RavenST.txt"), sep = '\t',
             row.names = F, col.names = T, quote = F)
+
+### local drive
+# write.table(all_whales_Raven_sun, paste0(drivepath,site,"_",deployment_number,"/",filename,"-RavenST.txt"), sep = '\t',
+#             row.names = F, col.names = T, quote = F)
 
 # write.csv(all_whales_Raven_sun, paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,"-RavenST.csv"), 
 #             row.names = F)
