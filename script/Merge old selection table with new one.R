@@ -8,8 +8,10 @@ deployment_number = "01"
 ST_ID = "9365"
 analyst_initials = "JAF"
 
-file<-paste0(site,'_',deployment_number,"-",ST_ID,"-all_LFDCS_Mah3-RavenST")
-file
+## timezone of start.time of old selection table which includes validation work ----
+# choose one below
+old_tz = "UTC"
+#old_tx = "America/New_York"
 
 ## NAS or local ----
 # on NAS
@@ -19,11 +21,15 @@ path<-paste0(drivepath,'/',site,'/',site,'_',deployment_number,'/',"lfdcs_proces
 # path<-"C:/Users/Leah.M.Crowe/OneDrive - Commonwealth of Massachusetts/Desktop/"
 # path
 
+## filename based on above params ----
+
+file<-paste0(site,'_',deployment_number,"-",ST_ID,"-all_LFDCS_Mah3-RavenST")
+file
+
 # read old file with validation work ----
 # need to rename the selection table file where the validation work was logged with the suffix "-old"
 
 old_selectiontable<- read.table(paste0(path,file,"_",analyst_initials,"-old.txt"), header = T, sep = "\t", quote = "")
-old_tz = "UTC"
 
 old_selectiontable$start.time<-ymd_hms(old_selectiontable$start.time, force_tz = old_tz)
 old_selectiontable$start_deploy<-ymd_hms(old_selectiontable$start_deploy)
