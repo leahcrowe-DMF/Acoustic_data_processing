@@ -7,7 +7,7 @@ site = "OUT98"
 deployment_number = "01"
 ST_ID = "9365"
 
-# choose one of the below for the timezone the ST files were offloaded in ----
+## choose one of the below for the timezone the ST files were offloaded in ----
 ST_TZ = "UTC"
 #ST_TZ = "America/New_York"
 
@@ -19,7 +19,7 @@ lon = -(70 + 30.06108/60)
 detector = "clnb_gom9"
 #detector = "clnb_gomlf_blue"
 
-## deployment start ----
+# deployment start ----
 
 path<-paste0(drivepath,'/',site,'/',site,'_',deployment_number,'/',ST_ID)
 # local drive
@@ -48,10 +48,10 @@ end_deploy
 end_deploy_tz<-format(end_deploy, format = "%Z")
 end_deploy_tz
 
-## LFDCS output as csv ----
+# LFDCS csv output ----
 filename = paste0(site,"_",deployment_number,"-",ST_ID,"-all_LFDCS_Mah3")
 
-# read in LFDCS detections ----
+## read in LFDCS detections ----
 all_lines<-read.delim(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,".csv"), skip = 14, header = T, sep = ",")%>%  
 #all_lines<-read.delim(paste0(drivepath,site,"_",deployment_number,"/",filename,".csv"), skip = 14, header = T, sep = ",")%>%    # local drive
   mutate(Selection = 1: n(),
@@ -144,7 +144,7 @@ head(all_whales_Raven)
 
 #all_whales_Raven%>%filter(date == "2025-08-25")
 
-### tod_bins ----
+## tod_bins ----
 #tod = time of day, choices = morning, day, night
 
 dates<-data.frame(date = seq(from = as.Date(start_deploy), to = as.Date(max(all_whales_Raven$start.time)), by = "day"))
@@ -188,7 +188,7 @@ head(all_whales_Raven_sun)
 names(all_whales_Raven_sun)
 
 
-# write file ----
+# write selection table file ----
 ## dawndusk for reference ----
 write.table(dawndusk, paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,"-dawndusk.txt"), sep = '\t',
             row.names = F, col.names = T, quote = F)
