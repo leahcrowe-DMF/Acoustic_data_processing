@@ -2,18 +2,18 @@ library(dplyr);library(lubridate);library(suncalc)
 
 # manual params ----
 
-drivepath = "E:/" 
-site = "GSC11"
+drivepath = "P:/" 
+site = "OUT98"
 deployment_number = "01"
-ST_ID = "8827"
+ST_ID = "9365"
 
-# choose one of the below for the timezone the ST files were offloaded in
-#ST_TZ = "UTC"
-ST_TZ = "America/New_York"
+# choose one of the below for the timezone the ST files were offloaded in ----
+ST_TZ = "UTC"
+#ST_TZ = "America/New_York"
 
 ## position of deployment ---- 
-lat = 41.45159599
-lon = -69.65305605
+lat = 42 + 52.86593/60
+lon = -(70 + 30.06108/60)
 
 ## detector choice ----
 detector = "clnb_gom9"
@@ -80,8 +80,8 @@ if (start_deploy_tz == "EDT" & end_deploy_tz == "EST" & ST_TZ == "America/New_Yo
 ## filter out anything before earliest wavefile in folder ----
 all_lines<-all_lines%>%filter(start.time > start_deploy & start.time < end_deploy)
 
-head(all_lines)
-tail(all_lines)
+#head(all_lines)
+#tail(all_lines)
 nrow(all_lines)
 unique(all_lines$Call.type)
 all_lines%>%filter(Call.type == -1)%>%nrow()
@@ -101,8 +101,8 @@ all_lines_Raven<-all_lines%>%
     `High Freq (Hz)` = Max.freq)%>%
   dplyr::select(Selection, View, Channel, Call.type, start.time, start_deploy, `Begin Time (s)`, `End Time (s)`, everything())
 
-head(all_lines_Raven)
-tail(all_lines_Raven)
+#head(all_lines_Raven)
+#tail(all_lines_Raven)
 
 if(detector == "clnb_gom9"){  
   all_lines_Raven<-all_lines_Raven%>%
@@ -134,14 +134,15 @@ all_whales_Raven<-all_lines_Raven%>%
          dolphins = "",
          comments = "",
          date = as.Date(start.time_ET, tz = "America/New_York"))
+
 nrow(all_whales_Raven)
 
 nrow(all_whales_Raven)/nrow(all_lines_Raven) 
 
 head(all_whales_Raven)
-tail(all_whales_Raven)
+#tail(all_whales_Raven)
 
-all_whales_Raven%>%filter(date == "2025-08-25")
+#all_whales_Raven%>%filter(date == "2025-08-25")
 
 ### tod_bins ----
 #tod = time of day, choices = morning, day, night
@@ -166,12 +167,12 @@ join_sun<-all_whales_Raven%>%
   left_join(dawndusk, by = "date")
 
 # all the below timezones should be the same
-format(join_sun$sunrise$dawn, format = "%Z")
-format(join_sun$sunrise$dusk, format = "%Z")
-format(join_sun$start.time_ET, format = "%Z")
+#format(join_sun$sunrise$dawn, format = "%Z")
+#format(join_sun$sunrise$dusk, format = "%Z")
+#format(join_sun$start.time_ET, format = "%Z")
 
 head(join_sun)
-tail(join_sun)
+#tail(join_sun)
 
 # 
 all_whales_Raven_sun<-join_sun%>%
@@ -183,7 +184,7 @@ all_whales_Raven_sun<-join_sun%>%
   dplyr::select(-date, -sunrise)
 
 head(all_whales_Raven_sun)
-tail(all_whales_Raven_sun)
+#tail(all_whales_Raven_sun)
 names(all_whales_Raven_sun)
 
 
