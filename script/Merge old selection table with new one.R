@@ -1,54 +1,76 @@
 library(dplyr);library(lubridate);library(ggplot2)
 
-path<-"C:/Users/Leah.M.Crowe/OneDrive - Commonwealth of Massachusetts/PAM_analysis_backup"
+# manual params of deployment ----
 
-#read all files in the folder
-analysis_files<-as.data.frame(list.files(path))%>%
-  dplyr::rename(filename = `list.files(path)`)%>%
-  mutate(fullpath = paste0(path,"/",filename))
-
-head(analysis_files)
-
-analysis_data_ls<-lapply(analysis_files_ls, function(x){ 
-  
-  #x<-analysis_files_ls$`BUZ17_01-all_LFDCS_Mah3-RavenST_LMC.txt`
-  
-  read.table(x$fullpath, header = T, sep = "\t", quote = "")%>%
-    mutate(Site = substr(x[[1]],1,5),
-           Analyst = "LMC",
-           dolphins = as.character(dolphins),
-           Call.type = as.integer(Call.type))}
-)
-
-old<-analysis_data_ls$`MBW04_02-8859-all_LFDCS_Mah3-RavenST_LMC.txt`
-
-##
 drivepath = "P:/" 
-site = "MBW04"
-deployment_number = "02"
-ST_ID = "8859"
+site = "OUT98"
+deployment_number = "01"
+ST_ID = "9365"
+analyst_initials = "JAF"
 
-new<-read.table(paste0(drivepath,site,"/",site,"_",deployment_number,"/lfdcs_processed/",filename,"-RavenST.txt"), header = T, sep = "\t", quote = "")
+file<-paste0(site,'_',deployment_number,"-",ST_ID,"-all_LFDCS_Mah3-RavenST")
+file
 
+## NAS or local ----
+# on NAS
+path<-paste0(drivepath,'/',site,'/',site,'_',deployment_number,'/',"lfdcs_processed/")
+
+# local
+# path<-"C:/Users/Leah.M.Crowe/OneDrive - Commonwealth of Massachusetts/Desktop/"
+# path
+
+# read old file with validation work ----
+# need to rename the selection table file where the validation work was logged with the suffix "-old"
+
+old_selectiontable<- read.table(paste0(path,file,"_",analyst_initials,"-old.txt"), header = T, sep = "\t", quote = "")
+old_tz = "UTC"
+
+old_selectiontable$start.time<-ymd_hms(old_selectiontable$start.time, force_tz = old_tz)
+old_selectiontable$start_deploy<-ymd_hms(old_selectiontable$start_deploy)
+
+head(old_selectiontable)
+
+# read new selection file without validation work
+
+new_selectiontable<-read.table(paste0(path,file,".txt"), header = T, sep = "\t", quote = "")
+new_selectiontable$start_deploy<-ymd_hms(new_selectiontable$start_deploy)
+new_selectiontable$validation<-as.character(new_selectiontable$validation)
+new_selectiontable$dolphins<-as.character(new_selectiontable$dolphins)
+new_selectiontable$comments<-as.character(new_selectiontable$comments)
+
+head(new_selectiontable)
 #
 
-old%>%filter(validation == "r")%>%dplyr::select(Selection, start.time)
+old_selectiontable%>%filter(validation == "r")%>%dplyr::select(Selection, start.time)
+new_selectiontable%>%filter(validation == "r")%>%dplyr::select(Selection, start.time)
 
-head(old)
-head(new)
+head(old_selectiontable)
+head(new_selectiontable)
 
-tail(old)
-tail(new)
+tail(old_selectiontable)
+tail(new_selectiontable)
 
-nrow(old)
-nrow(new)
+nrow(old_selectiontable)
+nrow(new_selectiontable)
 
-merge<-old%>%left_join(new, by = c("Selection","View","Channel","Low.Freq..Hz.","High.Freq..Hz.", "Begin.Time..s.", "End.Time..s.",
-                            "Call.type","start_deploy","start.fractional.second","Duration","Bandwidth","Amplitude",
+str(old_selectiontable)
+str(new_selectiontable)
+
+merge<-old_selectiontable%>%left_join(new_selectiontable, by = c("View","Channel","Low.Freq..Hz.","High.Freq..Hz.", "Begin.Time..s.", "End.Time..s.",
+                            "Call.type","start.time","start_deploy","start.fractional.second","Duration","Bandwidth","Amplitude",
                             "Mahalanobis.distance","Call.type.translation"))
-nrow(merge)
 
-merge%>%filter(validation.x == "r")%>%dplyr::select(Selection, start.time.x, start.time.y)
+# below should be 0 or only include manual validation (may also include detection before or after deployment that have a validation value, include " ")
+
+old_selectiontable%>%anti_join(new_selectiontable, by = c("View","Channel","Low.Freq..Hz.","High.Freq..Hz.", "Begin.Time..s.", "End.Time..s.",
+                                                          "Call.type","start.time","start_deploy","start.fractional.second","Duration","Bandwidth","Amplitude",
+                                                          "Mahalanobis.distance","Call.type.translation"))
+
+# final format of the newly merged file ----
+
+nrow(merge)
+head(merge)
+merge%>%filter(validation.x == "")%>%dplyr::select(Selection.y, start.time)
 
 new_merge<-merge%>%
   mutate(
@@ -57,20 +79,28 @@ new_merge<-merge%>%
   comments = comments.x,
   tod_bin = tod_bin.x,
   `Begin Time (s)` = Begin.Time..s.,
-  `End Time (s)` = End.Time..s.
+  `End Time (s)` = End.Time..s.,
+  Selection = Selection.y,
+  tod_bin = tod_bin.y
+  #start.time = start.time.x
 )%>%
   dplyr::rename(
   `Low Freq (Hz)` = Low.Freq..Hz.,
   `High Freq (Hz)` = High.Freq..Hz.)%>%
   dplyr::select("Selection","View","Channel",`Begin Time (s)`,`End Time (s)`,`Low Freq (Hz)`,`High Freq (Hz)`,
                 "Call.type","start.time","start_deploy","start.fractional.second","Duration","Bandwidth","Amplitude",
-                "Mahalanobis.distance","Call.type.translation","validation","dolphins","comments","tod_bin")
+                "Mahalanobis.distance",start.time_UTC, start.time_ET, time_zone_ET,"Call.type.translation","validation","dolphins","comments","tod_bin")
 
 nrow(new_merge)
+nrow(old_selectiontable)
+nrow(new_selectiontable)
+head(new_selectiontable)
 new_merge%>%filter(validation == "r")%>%dplyr::select(Selection, start.time)
+
+new_merge%>%filter(validation == "r" & comments != "")
 
 head(new_merge)
 new_merge[is.na(new_merge)] <- ""
 
-write.table(new_merge, paste0(path,"/",site,"_",deployment_number,"-", ST_ID, "-all_LFDCS_Mah3-RavenST_LMC2.txt"), sep = '\t',
+write.table(new_merge, paste0(path,file,"_",analyst_initials,".txt"), sep = '\t',
             row.names = F, col.names = T, quote = F)
