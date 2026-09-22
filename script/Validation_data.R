@@ -95,7 +95,6 @@ analysis_data_df%>%filter(Site == "TIL15")%>%
 megapclicks<-analysis_data_df%>%filter(grepl("megap",comments))
 megapclicks%>%filter(Site == "EOS10")
 
-
 ggplot(megapclicks%>%filter(Site != "EOS10"))+
   geom_point(aes(x = date, y = Site))+
   ggtitle("Detection of megapclicks")
@@ -259,18 +258,24 @@ NARW_det_day<-NARW_det%>%group_by(Site, date)%>%
 NARW_det_day%>%filter(Site == "ACK16" & date == "2026-08-17")
 write.csv(NARW_det_day, paste0("./data/NARW_det-", Sys.Date(), ".csv"), row.names = F)
 unique(NARW_det_day$Site)
-NARW_det_day$Site<-factor(NARW_det_day$Site, levels = c("BUZ17","NSO14","ACK16","GSC12","GSC11","EOS10","EOS09","EOS08","CCB19","CCB07","CCB06","MBW05","MBW04","TIL15","JEF03","JEF02","JEF01"))
+NARW_det_day$Site<-factor(NARW_det_day$Site, levels = c("BUZ17","NSO14","ACK16","GSC12","GSC11","EOS10","EOS09","EOS08","CCB19","CCB07","CCB06","MBW05","MBW04","SAN20","TIL15","JEF03","JEF02","JEF01"))
 ggplot(NARW_det_day)+
-  geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-14"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07")))+
-  geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-10"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
-  #geom_rect(mapping = aes(xmin = ymd("2025-03-27"), xmax = ymd("2025-04-07"), y = "BUZ17", height = 0.25), fill = "black", alpha = 0.2)+
-  #annotate("rect", xmin = ymd("2025-09-21"), xmax = ymd("2025-10-11"), y = "JEF03", height = 0.25, fill = "black", alpha = 0.2)+
-  geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-05-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2025-03-27"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("EOS08","EOS09","EOS10")))+
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2025-04-02"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("ACK16","NSO14")))+
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2025-04-07"), y = Site, height = 0.25), fill = "black", alpha = 0.1, data = data.frame(Site = c("BUZ17","BUZ17")))+ # won't let me list just one site
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2025-04-10"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2025-04-14"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07")))+
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2026-01-21"), y = Site, height = 0.25), fill = "black", alpha = 0.1, data = data.frame(Site = c("GSC18","GSC18")))+ # won't let me list just one site
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2026-02-19"), y = Site, height = 0.25), fill = "black", alpha = 0.1, data = data.frame(Site = c("CCB19","CCB19")))+ # won't let me list just one site
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2026-09-01"), y = Site, height = 0.25), fill = "black", alpha = 0.1, data = data.frame(Site = c("SAN20","SAN20")))+ # won't let me list just one site
+  # dead space in between deployments
+  geom_rect(recording_dead_periods, mapping = aes(xmin = min_dead, xmax = max_dead, y = Site, height = 0.25), fill = "black", alpha =0.2)+
+  # management measures
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2025-05-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
   geom_rect(aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-05-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = c("MBW04","MBW05","CCB06","CCB07","CCB19","EOS08","EOS09","EOS10","GSC11","GSC12","ACK16")))+
-  geom_rect(aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"), y = Site, height = 1), fill = "blue", alpha = 0.2, data = data.frame(Site =  c("MBW04","CCB06","CCB07","EOS08","EOS10")))+
-  #geom_rect(mapping = aes(xmin = ymd("2026-02-01"), xmax = ymd("2026-03-01"), y = Site, height = 1), fill = "red", alpha = 0.2, data = data.frame(Site = unique(NARW_det$Site)))+
+  geom_rect(aes(xmin = ymd("2025-05-01"), xmax = ymd("2025-05-14"), y = Site, height = 1), fill = "blue", alpha = 0.2, data = data.frame(Site =  c("MBW04","CCB06","CCB07","EOS08","EOS09","EOS10","CCB19")))+
+  geom_rect(aes(xmin = ymd("2026-05-01"), xmax = ymd("2026-05-09"), y = Site, height = 1), fill = "blue", alpha = 0.2, data = data.frame(Site =  c("MBW04","CCB06","CCB07","EOS08","EOS09","EOS10","CCB19")))+
   geom_point(aes(x = date, y = Site, color = confidence2))+
-  #geom_point(NARW_det%>%filter(confidence2 == "3+ upcalls"), mapping = aes(x = date, y = Site, color = confidence2))+
   facet_wrap(~validated_sp, ncol = 1)+
   scale_x_date(date_breaks = "1 month", date_labels = "%b-%Y")+
   scale_color_viridis_d(end = 0, begin = 0.8)+
