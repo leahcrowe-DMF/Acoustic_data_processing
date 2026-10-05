@@ -24,7 +24,9 @@ nrow(sud)
 wav <- dir%>%filter(grepl('.wav', filename))%>%mutate(basefilename = substr(filename, 1, nchar(filename) - 4))
 nrow(wav)
 
+# finds .wav files without a matching .sud file
 wav%>%anti_join(sud, by = 'basefilename')
+# finds .sud files without a matching .wav file
 sud%>%anti_join(wav, by = 'basefilename')
 
 # run report code ----
