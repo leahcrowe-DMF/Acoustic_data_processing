@@ -6,9 +6,9 @@ library(PAMmisc);library(PAMscapes);library(dplyr);library(lubridate)
 
 drive_folder = "P:/"
 #drive_folder = "D:/DMF_PAM/"
-site = "TIL15"
+site = "ACK16"
 deployment_number = "02"
-ST_ID = "8855"
+ST_ID = "8853"
 
 # path to data ----
 
