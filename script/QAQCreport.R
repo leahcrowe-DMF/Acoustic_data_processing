@@ -32,7 +32,7 @@ sud%>%anti_join(wav, by = 'basefilename')
 # run report code ----
 
 qaqcData <- evaluateDeployment(dir=path, sensitivity=-172.5, excludeDirs = "Initial offload",
-                               outDir=paste0(path,"/QAQC_Output"))
+                               outDir=paste0(path,"/QAQC_Output"), name = paste0(site,"_",deployment_number,"-", ST_ID))
 
 
 runQAQCReview(data = paste0(path,"/QAQC_Output/",site,"_",deployment_number,"-",ST_ID,"_QAQCData.csv"))
@@ -55,3 +55,4 @@ noise_floor<-TOL%>%filter(TOL_16000 > TOL_500)%>%
   filter(!is.na(date))
 
 write.csv(noise_floor, paste0(path,"/QAQC_Output/",site,"_",deployment_number,"-",ST_ID,"_noisefloor.csv"), row.names = F)
+
