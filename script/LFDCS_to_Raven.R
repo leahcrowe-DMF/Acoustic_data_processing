@@ -29,7 +29,7 @@ path
 all_wav<-as.data.frame(list.files(path))%>%
   dplyr::rename(filename = `list.files(path)`)%>%
   filter(grepl('.wav', filename))%>%mutate(basefilename = substr(filename, 6, nchar(filename) - 4))%>%
-  mutate(date = ymd_hms(basefilename),
+  mutate(datetime = ymd_hms(basefilename),
          STID = substr(filename, 1, nchar(filename) - 17))
 
 #check if folder matches the ST ID in the file string
@@ -38,12 +38,12 @@ identical(unique(all_wav$STID), ST_ID)
 
 ### start and end of deployment ----
 # date/time of files that include the deployment and recovery (or is the earliest/latest file in the folder) 
-start_deploy = force_tz(min(all_wav$date), tz = ST_TZ)
+start_deploy = force_tz(min(all_wav$datetime), tz = ST_TZ)
 start_deploy
 start_deploy_tz<-format(start_deploy, format = "%Z")
 start_deploy_tz
 
-end_deploy = force_tz(max(all_wav$date), tz = ST_TZ)
+end_deploy = force_tz(max(all_wav$datetime), tz = ST_TZ)
 end_deploy
 end_deploy_tz<-format(end_deploy, format = "%Z")
 end_deploy_tz
