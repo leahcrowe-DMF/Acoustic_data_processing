@@ -1,7 +1,5 @@
 library(dplyr);library(lubridate);library(ggplot2)
 
-site_of_interest = "EOS09"
-
 # adjust path for your files
 
 path<-"C:/Users/Leah.M.Crowe/OneDrive - Commonwealth of Massachusetts/PAM_analysis_backup"
@@ -45,7 +43,7 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>% #compresses the list of selecti
     grepl("m",validation) ~ "Minke whale",
     TRUE ~ ""
   ))%>%
-  mutate(date = as.Date(start.time),
+  mutate(date = as.Date(start.time_ET),
          time = substr(start.time, 12, 20))
 
 # 1. check distinct "validation" and "dolphin" values ----
@@ -53,14 +51,14 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>% #compresses the list of selecti
 ## validation column ----
 unique(analysis_data_df$validation)
 ### specific site ----
-analysis_data_df%>%filter(Site == site_of_interest)%>%distinct(validation)
+analysis_data_df%>%filter(Site == "OUT98")%>%distinct(validation)
 ### specific validation value ----
 analysis_data_df%>%filter(validation == "f?")%>%dplyr::select(Site, Selection, start.time)
 
 ## dolphins column ----
 unique(analysis_data_df$dolphins)
 ### specific site ----
-analysis_data_df%>%filter(Site == site_of_interest)%>%distinct(dolphins)
+analysis_data_df%>%filter(Site == "OUT98")%>%distinct(dolphins)
 ### specific validation value ----
 analysis_data_df%>%filter(dolphins == "")%>%dplyr::select(Site, Selection, start.time)
 analysis_data_df%>%filter(is.na(dolphins))%>%dplyr::select(Site, Selection, start.time)
@@ -88,24 +86,24 @@ detection_date%>%
 
 ## check on specific site ----
 detection_date%>%
-  filter(Site == site_of_interest)%>% #change the site text
+  filter(Site == "OUT98")%>% #change the site text
   filter(validated_sp == "Right whale" & confidence2 == "<3 calls")%>%
   #filter(date > ymd("2025-09-01"))%>%
   as.data.frame()
 
 ### find specific calls from specific days ----
-analysis_data_df%>%filter(Site == site_of_interest & date == "2025-08-10" & validation == "r")
+analysis_data_df%>%filter(Site == "OUT98" & date == "2025-09-16" & validation == "r")
 
 
 # 3. Check on right whale detections that were skipped ----
 
 date_pos_Eg<-detection_date%>%
-  #filter(Site == "BUZ17")%>% #change the site text
+  filter(Site == "BUZ17")%>% #change the site text
   filter(validated_sp == "Right whale" & confidence2 == "3+ calls")%>%
   #filter(date > ymd("2025-09-01"))%>%
   as.data.frame()
 
 # unvalidated detections from days which did not reach right whale threshold (3 or more upcalls)
 analysis_data_df%>%
-  filter(Call.type.translation == "Right whale" & validation == "" & Site == site_of_interest)%>%
+  filter(Call.type.translation == "Right whale" & validation == "" & Site == "BUZ17")%>%
   anti_join(date_pos_Eg, by = "date")
