@@ -55,8 +55,12 @@ analysis_data_df<-bind_rows(analysis_data_ls)%>% #need to check Manali's r with 
     grepl("m",validation) ~ "Minke whale",
     TRUE ~ ""
   ))%>%
-  mutate(date = as.Date(start.time),
-         time = substr(start.time, 12, 20))
+  mutate(start.time_ET = case_when(
+    is.na(start.time_ET) ~ start.time,
+    TRUE ~ start.time_ET
+  ))%>%
+  mutate(date = as.Date(start.time_ET),
+         time = substr(start.time_ET, 12, 20))
 
 analysis_data_df%>%#filter(Site == "GSC12")%>%
   distinct(validation)
@@ -80,7 +84,7 @@ analysis_data_df%>%filter(date == "2025-11-27" & validation == "r")%>%distinct(S
 
 #some to fix here
 analysis_data_df%>%filter(tod_bin == "")
-
+analysis_data_df%>%filter(Site == "OUT98")
 analysis_data_df%>%filter(Site == "MBW05" & 
                             ymd_hms(start.time) < ymd_hms("2025-06-01 00:00:02") & 
                             Call.type.translation == "Right whale" & validation == "")
@@ -92,10 +96,10 @@ analysis_data_df%>%filter(Site == "TIL15")%>%
 
 
 # megapclicks ----
-megapclicks<-analysis_data_df%>%filter(grepl("megap",comments))
-megapclicks%>%filter(Site == "EOS10")
+megapclicks<-analysis_data_df%>%filter(grepl("megap",tolower(comments)))
+megapclicks%>%filter(Site == "OUT98")
 
-ggplot(megapclicks%>%filter(Site != "EOS10"))+
+ggplot(megapclicks)+
   geom_point(aes(x = date, y = Site))+
   ggtitle("Detection of megapclicks")
 
@@ -180,7 +184,7 @@ detection_bin%>%filter(con_count == 1 & confidence2 == "<3 calls")
 
 detection_bin%>%filter(date > "2026-02-18")
 
-analysis_data_df%>%filter(Site == "BUZ17" & validated_sp == "Humpback whale")
+analysis_data_df%>%filter(Site == "OUT98" & validated_sp == "Right whale")
 analysis_data_df%>%filter(validated_sp == "Humpback whale")
 
 ### by date only ----
@@ -202,6 +206,7 @@ detection_date<-analysis_data_df%>%
 write.csv(detection_date, paste0("./data/detection_date-", Sys.Date(), ".csv"), row.names = F)
 
 unique(detection_date$validated_sp)
+unique(detection_date$Site)
 
 detection_date%>%filter(validated_sp == "")
 
@@ -215,6 +220,16 @@ unique(detection_date$validated_sp)
 ggplot(detection_date)+
   geom_point(aes(x = date, y = Site, color = confidence2))+
   facet_wrap(~validated_sp, ncol = 1)
+
+ggplot(detection_date%>%filter(validated_sp == "Humpback whale"))+
+  geom_point(aes(x = date, y = Site, color = confidence2))+
+  facet_wrap(~validated_sp, ncol = 1)
+
+ggplot(detection_date)+
+  geom_point(aes(x = date, y = validated_sp, color = confidence2))+
+  facet_wrap(~Site, ncol = 4)
+
+detection_date%>%filter(validated_sp == "Humpback whale" & date == "2025-05-27")
 
 detection_date%>%
   filter(Site == "MBW04" & validated_sp == "Right whale" & confidence2 == "<3 calls")%>%
@@ -255,10 +270,10 @@ NARW_det<-detection_bin%>%filter(validated_sp == "Right whale")%>%filter(tod_bin
 NARW_det_day<-NARW_det%>%group_by(Site, date)%>%
   mutate(confidence2_n = n())%>%distinct(Site, date, validated_sp, confidence2, confidence2_n)%>%filter(!(confidence2_n > 1 & confidence2 == "<3 calls"))
 
-NARW_det_day%>%filter(Site == "ACK16" & date == "2026-08-17")
+NARW_det_day%>%filter(Site == "OUT98")
 write.csv(NARW_det_day, paste0("./data/NARW_det-", Sys.Date(), ".csv"), row.names = F)
 unique(NARW_det_day$Site)
-NARW_det_day$Site<-factor(NARW_det_day$Site, levels = c("BUZ17","NSO14","ACK16","GSC12","GSC11","EOS10","EOS09","EOS08","CCB19","CCB07","CCB06","MBW05","MBW04","SAN20","TIL15","JEF03","JEF02","JEF01"))
+NARW_det_day$Site<-factor(NARW_det_day$Site, levels = c("BUZ17","NSO14","ACK16","GSC12","GSC11","EOS10","EOS09","EOS08","CCB19","CCB07","CCB06","MBW05","MBW04","SAN20","TIL15","JEF03","JEF02","JEF01","OUT98"))
 ggplot(NARW_det_day)+
   geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2025-03-27"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("EOS08","EOS09","EOS10")))+
   geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2025-04-02"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("ACK16","NSO14")))+
@@ -268,6 +283,7 @@ ggplot(NARW_det_day)+
   geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2026-01-21"), y = Site, height = 0.25), fill = "black", alpha = 0.1, data = data.frame(Site = c("GSC18","GSC18")))+ # won't let me list just one site
   geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2026-02-19"), y = Site, height = 0.25), fill = "black", alpha = 0.1, data = data.frame(Site = c("CCB19","CCB19")))+ # won't let me list just one site
   geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2026-09-01"), y = Site, height = 0.25), fill = "black", alpha = 0.1, data = data.frame(Site = c("SAN20","SAN20")))+ # won't let me list just one site
+  geom_rect(aes(xmin = ymd("2025-03-26"), xmax = ymd("2025-08-26"), y = Site, height = 0.25), fill = "black", alpha = 0.1, data = data.frame(Site = c("OUT98","OUT98")))+ # won't let me list just one site
   # dead space in between deployments
   geom_rect(recording_dead_periods, mapping = aes(xmin = min_dead, xmax = max_dead, y = Site, height = 0.25), fill = "black", alpha =0.2)+
   # management measures
@@ -286,7 +302,7 @@ ggplot(NARW_det_day)+
 
 ## Just Jeffreys + Tillies
 
-ggplot(NARW_det_day%>%filter(Site %in% c("JEF01","JEF02","JEF03","TIL15")))+
+ggplot(NARW_det_day%>%filter(Site %in% c("JEF01","JEF02","JEF03","TIL15","OUT98")))+
   geom_rect(aes(xmin = ymd("2025-03-24"), xmax = ymd("2025-04-10"), y = Site, height = 0.25), fill = "black", alpha = 0.2, data = data.frame(Site = c("JEF01","JEF02","JEF03","TIL15")))+
   geom_rect(mapping = aes(xmin = ymd("2025-04-10"), xmax = ymd("2025-09-21"), y = "JEF01", height = 0.25), fill = "red")+
   geom_rect(mapping = aes(xmin = ymd("2025-10-11"), xmax = ymd("2026-02-16"), y = Site, height = 0.25), fill = "red", data = data.frame(Site = c("JEF02","JEF03")))+
