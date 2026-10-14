@@ -21,6 +21,7 @@ PAM<-arc_read("https://services1.arcgis.com/7iJyYTjCtKsZS1LR/arcgis/rest/service
   filter(PAMID != "DMF MARS")%>%
   filter(!grepl("Muoy", PAMID))%>%
   filter(!grepl("Never deployed", NOTES))%>%
+  filter(PAMID != "GSC13_01")%>%
   mutate(CaptureDate = with_tz(CaptureDate, tzone = "UTC"))%>%
   mutate(CaptureDate_ET = with_tz(CaptureDate, tzone = "America/New_York"))
 head(PAM)
@@ -57,7 +58,7 @@ ontheboat<-all_deploy_data%>%
          Deploy_LON_dd = paste0(substr(Deploy_LON, 1, 3)),
          Deploy_LON_mm = round((Deploy_LON - as.numeric(Deploy_LON_dd))*-60,2))
 
-write.csv(ontheboat, paste0("./data/MADMF-ontheboat_", Sys.Date(),".csv"), row.names = F)
+write.csv(ontheboat, paste0("./data/MADMF-inthewater_", Sys.Date(),".csv"), row.names = F)
 
 ## fishing gear ---
 
