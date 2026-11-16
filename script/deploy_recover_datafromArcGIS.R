@@ -33,16 +33,16 @@ predeploy<-PAM%>%filter(DEPLOYSTATUS == "Pre-deployment")%>%as.data.frame()%>%
   dplyr::select(SAT_beacon_ID, SoundTrap_ID, VR2_ID, PAMID, "Pre-deploy_notes" = "NOTES")
 
 recover<-PAM%>%filter(DEPLOYSTATUS == "Recovery")%>%as.data.frame()%>%
-  dplyr::select("Recover_Datetime_ET" = "CaptureDate_ET", "Recover_LAT" = "LAT_DD", "Recover_LON" = "LONG_DD", PAMID, "Recover_notes" = "NOTES")
+  dplyr::select("Recover_Datetime_ET" = "CaptureDate_ET", "Recover_Datetime_UTC" = "CaptureDate", "Recover_LAT" = "LAT_DD", "Recover_LON" = "LONG_DD", PAMID, "Recover_notes" = "NOTES")
 
 all_deploy_data<-PAM%>%
   filter(DEPLOYSTATUS == "Deployment")%>%
-  dplyr::select(PAMID, "Deploy_Datetime_ET" = "CaptureDate_ET", "Deploy_LAT" = "LAT_DD", "Deploy_LON" = "LONG_DD", DEPTHFT, "Deploy_notes" = "NOTES")%>%
+  dplyr::select(PAMID, "Deploy_Datetime_ET" = "CaptureDate_ET","Deploy_Datetime_UTC" = "CaptureDate", "Deploy_LAT" = "LAT_DD", "Deploy_LON" = "LONG_DD", DEPTHFT, "Deploy_notes" = "NOTES")%>%
   full_join(predeploy, by = "PAMID")%>%
   full_join(recover, by = "PAMID")%>%
   as.data.frame()%>%
   arrange(Deploy_Datetime_ET)%>%
-  dplyr::select(PAMID, SAT_beacon_ID, SoundTrap_ID,VR2_ID, Deploy_Datetime_ET, Deploy_LAT, Deploy_LON, DEPTHFT, `Pre-deploy_notes`, Deploy_notes, Recover_Datetime_ET, Recover_LAT, Recover_LON, Recover_notes)
+  dplyr::select(PAMID, SAT_beacon_ID, SoundTrap_ID,VR2_ID, Deploy_Datetime_ET, Deploy_Datetime_UTC, Deploy_LAT, Deploy_LON, DEPTHFT, `Pre-deploy_notes`, Deploy_notes, Recover_Datetime_ET, Recover_Datetime_UTC, Recover_LAT, Recover_LON, Recover_notes)
 
 unique(all_deploy_data$PAMID)
 
